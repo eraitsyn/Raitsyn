@@ -1,151 +1,107 @@
 --[[
-	DevScaffold: builds placeholder plots and items in Studio when none exist,
-	so the systems can be played without any building first.
+	DevScaffold: builds a placeholder map in Studio when none exists, so the
+	game can be played without any building first.
 
 	It never runs in a live server (Main only calls it in Studio) and never
-	touches a place that already has workspace.Plots or ServerStorage.Items.
-	Replace the placeholders with real models that follow the same names.
+	touches a place that already has workspace.Plots or workspace.Lane.
+	Replace the placeholders with real builds that keep the same names.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
 
-local Buttons = require(ReplicatedStorage.Shared.Config.Buttons)
-local ButtonGraph = require(ReplicatedStorage.Shared.ButtonGraph)
+local Economy = require(ReplicatedStorage.Shared.Config.Economy)
 
-local PLOT_COUNT = 4
-local PLOT_SPACING = 120
+local PLOT_ORIGINS = {
+	CFrame.new(-55, 0, 60),
+	CFrame.new(55, 0, 60),
+	CFrame.new(-55, 0, -60) * CFrame.Angles(0, math.pi, 0),
+	CFrame.new(55, 0, -60) * CFrame.Angles(0, math.pi, 0),
+}
+local PLOT_COLORS = {
+	Color3.fromRGB(110, 160, 90),
+	Color3.fromRGB(90, 140, 170),
+	Color3.fromRGB(170, 130, 90),
+	Color3.fromRGB(150, 100, 160),
+}
+local SLOT_COLUMNS = { -27, -9, 9, 27 }
+local SLOT_ROWS = { -14, 2, 18 } -- front row faces the lane (local -Z)
 
 local DevScaffold = {}
 
-local function part(props: { [string]: any }): Part
+local function part(name: string, size: Vector3, cframe: CFrame, color: Color3, parent: Instance): Part
 	local newPart = Instance.new("Part")
+	newPart.Name = name
 	newPart.Anchored = true
+	newPart.Size = size
+	newPart.CFrame = cframe
+	newPart.Color = color
 	newPart.TopSurface = Enum.SurfaceType.Smooth
 	newPart.BottomSurface = Enum.SurfaceType.Smooth
-	for key, value in props do
-		(newPart :: any)[key] = value
-	end
+	newPart.Parent = parent
 	return newPart
 end
 
--- Item templates are built around the origin; PurchaseService moves them onto the plot.
-local function buildItems(): Folder
-	local items = Instance.new("Folder")
-	items.Name = "Items"
-
-	local function model(name: string, parts: { Part }): Model
-		local newModel = Instance.new("Model")
-		newModel.Name = name
-		for _, child in parts do
-			child.Parent = newModel
-		end
-		newModel.WorldPivot = CFrame.new()
-		newModel.Parent = items
-		return newModel
-	end
-
-	model("Conveyor1", {
-		part({
-			Name = "Belt",
-			Size = Vector3.new(60, 1, 4),
-			Position = Vector3.new(-2, 1, 0),
-			Color = Color3.fromRGB(40, 40, 40),
-			AssemblyLinearVelocity = Vector3.new(10, 0, 0),
-		}),
-	})
-	model("Dropper1", {
-		part({
-			Name = "DropOrigin",
-			Size = Vector3.new(3, 3, 3),
-			Position = Vector3.new(-26, 8, 0),
-			Color = Color3.fromRGB(90, 140, 220),
-		}),
-	})
-	model("Dropper2", {
-		part({
-			Name = "DropOrigin",
-			Size = Vector3.new(3, 3, 3),
-			Position = Vector3.new(-16, 8, 0),
-			Color = Color3.fromRGB(150, 90, 220),
-		}),
-	})
-	model("Upgrader1", {
-		part({
-			Name = "UpgradeZone",
-			Size = Vector3.new(2, 3, 5),
-			Position = Vector3.new(10, 3, 0),
-			Color = Color3.fromRGB(240, 200, 60),
-			Material = Enum.Material.Neon,
-			Transparency = 0.5,
-			CanCollide = false,
-		}),
-	})
-
-	return items
+local function buildLane(): Model
+	local lane = Instance.new("Model")
+	lane.Name = "Lane"
+	part("Belt", Vector3.new(220, 1, 10), CFrame.new(0, 0.5, 0), Color3.fromRGB(40, 40, 45), lane)
+	local laneStart =
+		part("LaneStart", Vector3.new(4, 1, 10), CFrame.new(-108, 0.5, 0), Color3.fromRGB(255, 200, 60), lane)
+	laneStart.Material = Enum.Material.Neon
+	local laneEnd = part("LaneEnd", Vector3.new(4, 1, 10), CFrame.new(108, 0.5, 0), Color3.fromRGB(255, 80, 80), lane)
+	laneEnd.Material = Enum.Material.Neon
+	return lane
 end
 
 local function buildPlot(index: number): Model
+	local origin = PLOT_ORIGINS[index]
 	local plot = Instance.new("Model")
 	plot.Name = `Plot{index}`
-	local origin = CFrame.new((index - 1) * PLOT_SPACING, 0, 0)
 
-	local function add(child: Instance, offset: Vector3?)
-		if offset and child:IsA("BasePart") then
-			child.CFrame = origin * CFrame.new(offset)
-		end
-		child.Parent = plot
-		return child
-	end
-
-	local base = add(
-		part({ Name = "Base", Size = Vector3.new(100, 1, 100), Color = Color3.fromRGB(110, 160, 90) }),
-		Vector3.zero
-	) :: Part
+	local base = part("Base", Vector3.new(80, 1, 60), origin, PLOT_COLORS[index], plot)
 	plot.PrimaryPart = base
-	add(
-		part({ Name = "Spawn", Size = Vector3.new(6, 1, 6), Color = Color3.fromRGB(200, 200, 200) }),
-		Vector3.new(0, 1, 40)
+	part("Spawn", Vector3.new(6, 1, 6), origin * CFrame.new(0, 1, 22), Color3.fromRGB(220, 220, 220), plot)
+	local collectPad = part(
+		"CollectPad",
+		Vector3.new(8, 0.4, 8),
+		origin * CFrame.new(-34, 0.7, 24),
+		Color3.fromRGB(60, 200, 120),
+		plot
 	)
-	add(
-		part({ Name = "Collector", Size = Vector3.new(4, 4, 6), Color = Color3.fromRGB(220, 80, 80) }),
-		Vector3.new(30, 2, 0)
-	)
-	add(
-		part({ Name = "CollectPad", Size = Vector3.new(6, 0.2, 6), Color = Color3.fromRGB(60, 200, 120) }),
-		Vector3.new(30, 0.6, 14)
-	)
+	collectPad.Material = Enum.Material.Neon
 
-	local pads = Instance.new("Folder")
-	pads.Name = "Buttons"
-	for position, id in ButtonGraph.Order(Buttons) do
-		local pad = part({
-			Name = id,
-			Size = Vector3.new(6, 0.2, 6),
-			Color = Color3.fromRGB(60, 200, 120),
-			Material = Enum.Material.Neon,
-		})
-		pad.CFrame = origin * CFrame.new(-36 + (position - 1) * 12, 0.6, -40)
-		pad.Parent = pads
+	local slots = Instance.new("Folder")
+	slots.Name = "Slots"
+	local slotIndex = 0
+	for _, z in SLOT_ROWS do
+		for _, x in SLOT_COLUMNS do
+			slotIndex += 1
+			if slotIndex > Economy.SlotsPerBase then
+				break
+			end
+			part(
+				`Slot{slotIndex}`,
+				Vector3.new(10, 0.4, 10),
+				origin * CFrame.new(x, 0.7, z),
+				Color3.fromRGB(235, 235, 235),
+				slots
+			)
+		end
 	end
-	add(pads)
-
-	local items = Instance.new("Folder")
-	items.Name = "Items"
-	add(items)
-
+	slots.Parent = plot
 	return plot
 end
 
 function DevScaffold.BuildIfMissing()
-	if ServerStorage:FindFirstChild("Items") == nil then
-		buildItems().Parent = ServerStorage
-		warn("[DevScaffold] built placeholder ServerStorage.Items")
+	assert(Economy.SlotsPerBase <= #SLOT_COLUMNS * #SLOT_ROWS, "DevScaffold has room for 12 slots")
+	if workspace:FindFirstChild("Lane") == nil then
+		buildLane().Parent = workspace
+		warn("[DevScaffold] built placeholder workspace.Lane")
 	end
 	if workspace:FindFirstChild("Plots") == nil then
 		local plots = Instance.new("Folder")
 		plots.Name = "Plots"
-		for index = 1, PLOT_COUNT do
+		for index in PLOT_ORIGINS do
 			buildPlot(index).Parent = plots
 		end
 		plots.Parent = workspace

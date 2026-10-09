@@ -1,5 +1,6 @@
 --[[
-	Gate: the only place remote handlers are registered.
+	Gate: the only place remote handlers are registered, and the rate limit for
+	ProximityPrompt triggers.
 
 	Every request is rate limited per player, then type checked, before the handler
 	runs. Failures are dropped silently and count as strikes; too many strikes in a
@@ -63,6 +64,22 @@ function Gate.Handle(name: string, options: Options, handler: (Player, ...any) -
 			warn(`[Gate] {name} handler failed for {player.Name}: {err}`)
 		end
 	end)
+end
+
+-- Prompts are triggered by clients too, so they share one rate limit per player.
+local promptLimiter = RateLimiter.new(8, 4)
+table.insert(limiters, promptLimiter)
+
+-- Call first in every ProximityPrompt.Triggered handler.
+function Gate.AllowPrompt(player: Player): boolean
+	if player.Parent ~= Players then
+		return false
+	end
+	if not promptLimiter:Allow(player) then
+		strike(player, "prompt", "rate limited")
+		return false
+	end
+	return true
 end
 
 function Gate.Notify(player: Player, kind: string, id: string?)

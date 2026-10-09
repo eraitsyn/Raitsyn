@@ -1,4 +1,5 @@
--- Server entry point. Order matters: plots and config are checked before players are handled.
+-- Server entry point. Order matters: the map is checked and every service is
+-- ready before players are handled.
 
 local RunService = game:GetService("RunService")
 
@@ -9,5 +10,6 @@ if RunService:IsStudio() then
 end
 
 require(Services.PlotService).Init()
-require(Services.PurchaseService).Init()
+require(Services.StealService).Init()
+require(Services.LaneService).Init()
 require(Services.TycoonService).Init()

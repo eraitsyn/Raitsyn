@@ -9,8 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local NAMES = {
-	"RequestPurchase", -- client -> server: (buttonId: string)
-	"RequestRebirth", -- client -> server: ()
+	"RequestLock", -- client -> server: ()
 	"Notify", -- server -> client: ({ kind: string, id: string? })
 }
 

@@ -65,13 +65,4 @@ function CurrencyService.TrySpend(player: Player, amount: number): boolean
 	return true
 end
 
--- Sets cash directly. Used only by rebirth.
-function CurrencyService.Reset(player: Player)
-	local account = accounts[player]
-	if account then
-		account.data.Cash = 0
-		sync(account)
-	end
-end
-
 return CurrencyService

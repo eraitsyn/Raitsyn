@@ -10,7 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
-local Buttons = require(ReplicatedStorage.Shared.Config.Buttons)
+local Gods = require(ReplicatedStorage.Shared.Config.Gods)
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
 local DataSchema = require(script.Parent.Parent.DataSchema)
 
@@ -38,7 +38,7 @@ function DataService.Load(player: Player): DataSchema.PlayerData?
 
 	profile:AddUserId(player.UserId)
 	profile:Reconcile()
-	DataSchema.Sanitize(profile.Data, Buttons, Economy.MaxCash)
+	DataSchema.Sanitize(profile.Data, Gods.Gods, Economy.SlotsPerBase, Economy.MaxCash)
 
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil

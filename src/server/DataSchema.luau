@@ -1,6 +1,8 @@
 --[[
 	DataSchema: the saved player data shape and its load-time cleanup.
 
+	Slots maps a slot number as a string ("1".."8") to a god id. String keys keep
+	the table a dictionary, which DataStores save reliably even with gaps.
 	No Roblox dependencies, so it is unit tested outside Studio.
 ]]
 
@@ -8,20 +10,18 @@ export type PlayerData = {
 	Version: number,
 	Cash: number,
 	StoredCash: number,
-	Purchased: { [string]: boolean },
-	Rebirths: number,
+	Slots: { [string]: string },
 }
 
 local DataSchema = {}
 
-DataSchema.Version = 1
+DataSchema.Version = 2
 
 DataSchema.Template = {
-	Version = 1,
-	Cash = 0,
+	Version = 2,
+	Cash = 50,
 	StoredCash = 0,
-	Purchased = {},
-	Rebirths = 0,
+	Slots = {},
 } :: PlayerData
 
 local function wholeNumber(value: any, max: number): number
@@ -31,22 +31,39 @@ local function wholeNumber(value: any, max: number): number
 	return math.clamp(math.floor(value), 0, max)
 end
 
--- Fixes a loaded profile in place: whole, in-range numbers and only known button ids.
-function DataSchema.Sanitize(data: PlayerData, knownButtons: { [string]: any }, maxCash: number)
+-- Fixes a loaded profile in place: whole, in-range numbers, only known gods in
+-- valid slots, and no fields left over from older versions.
+function DataSchema.Sanitize(data: any, knownGods: { [string]: any }, slotCount: number, maxCash: number)
 	data.Version = DataSchema.Version
 	data.Cash = wholeNumber(data.Cash, maxCash)
 	data.StoredCash = wholeNumber(data.StoredCash, maxCash)
-	data.Rebirths = wholeNumber(data.Rebirths, maxCash)
 
-	local purchased = {}
-	if type(data.Purchased) == "table" then
-		for id, owned in data.Purchased do
-			if owned == true and knownButtons[id] ~= nil then
-				purchased[id] = true
+	local slots = {}
+	if type(data.Slots) == "table" then
+		for index = 1, slotCount do
+			local key = tostring(index)
+			local godId = data.Slots[key]
+			if type(godId) == "string" and knownGods[godId] ~= nil then
+				slots[key] = godId
 			end
 		end
 	end
-	data.Purchased = purchased
+	data.Slots = slots
+
+	-- Version 1 fields (dropper tycoon).
+	data.Purchased = nil
+	data.Rebirths = nil
+end
+
+-- The lowest empty slot key, or nil when the base is full.
+function DataSchema.FreeSlot(data: PlayerData, slotCount: number): string?
+	for index = 1, slotCount do
+		local key = tostring(index)
+		if data.Slots[key] == nil then
+			return key
+		end
+	end
+	return nil
 end
 
 return DataSchema

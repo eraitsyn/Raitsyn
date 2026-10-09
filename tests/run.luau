@@ -4,9 +4,9 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 
 local specs = {
-	"ButtonGraph",
 	"DataSchema",
 	"RateLimiter",
+	"Rolls",
 	"Validate",
 }
 

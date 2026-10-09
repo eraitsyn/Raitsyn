@@ -3,12 +3,12 @@ local T = require("./TestKit")
 
 return {
 	["String accepts a short string"] = function()
-		T.truthy(Validate.String(8)("Dropper1"))
+		T.truthy(Validate.String(8)("Poseidon"))
 	end,
 	["String rejects empty, long, non-string and invalid UTF-8"] = function()
 		local check = Validate.String(8)
 		T.falsy(check(""))
-		T.falsy(check("Dropper12"))
+		T.falsy(check("Poseidon1"))
 		T.falsy(check(5))
 		T.falsy(check({}))
 		T.falsy(check(nil))
