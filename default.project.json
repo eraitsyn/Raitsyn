@@ -1,0 +1,28 @@
+{
+	"name": "Raitsyn",
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"Shared": {
+				"$path": "src/shared"
+			}
+		},
+		"ServerScriptService": {
+			"Server": {
+				"$path": "src/server"
+			}
+		},
+		"ServerStorage": {
+			"ServerPackages": {
+				"$path": "ServerPackages"
+			}
+		},
+		"StarterPlayer": {
+			"StarterPlayerScripts": {
+				"Client": {
+					"$path": "src/client"
+				}
+			}
+		}
+	}
+}
