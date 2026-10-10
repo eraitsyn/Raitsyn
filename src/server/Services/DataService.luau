@@ -21,9 +21,15 @@ for _, egg in PetConfig.Eggs do
 	eggsById[egg.id] = egg
 end
 
+local mutationsById = {}
+for _, mutation in PetConfig.Mutations do
+	mutationsById[mutation.id] = mutation
+end
+
 local LIMITS: DataSchema.Limits = {
 	pets = PetConfig.Pets,
 	eggs = eggsById,
+	mutations = mutationsById,
 	pedestals = Economy.PedestalCount,
 	incubators = Economy.IncubatorCount,
 	maxLuckLevel = Economy.MaxLuckLevel,

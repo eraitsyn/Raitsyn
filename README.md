@@ -6,12 +6,13 @@ The server owns every number and every roll. Clients only trigger prompts; the s
 
 ## How it plays
 
-1. **Buy an egg** at one of the three shop stands in your base (Basic, Golden, Cosmic). The sign above each stand lists every pet it can hatch as "1 in N", already adjusted for your luck.
+1. **Buy an egg** at one of the five shop stands in your base (Basic, Golden, Cosmic, Volcano, Void). The sign above each stand lists every pet it can hatch as "1 in N", already adjusted for your luck.
 2. **Incubate.** The egg goes into a free incubator and counts down. The timer keeps running while you are offline.
-3. **Hatch** it when the timer hits zero. The server rolls the pet and places it on a free pedestal. Mythical and Secret hatches are announced to the whole server.
-4. **Collect.** Each pet adds its income to its pedestal once a second. Step on the pedestal's green button to collect it.
-5. **Upgrade luck** at the luck board (x1.25, x1.5, ...). Luck shifts the odds toward Rare and better pets.
-6. **Sell** a pet by holding its prompt, for 10 times its income plus any cash left on its pedestal.
+3. **Hatch** it when the timer hits zero. The egg wobbles and cracks open on screen, and the server rolls the pet and places it on a free pedestal. Mythical, Secret and Rainbow hatches are announced to the whole server.
+4. **Mutations** are rolled on every hatch: Golden (1 in 20, x2 income), Diamond (1 in 100, x5) and Rainbow (1 in 500, x10). Mutated pets look different and sell for more.
+5. **Collect.** Each pet adds its income to its pedestal once a second. Step on the pedestal's green button to collect it. While you are offline, pets keep earning at half rate for up to 8 hours.
+6. **Upgrade luck** at the luck board (x1.25, x1.5, ...). Luck shifts the odds toward Rare and better pets.
+7. **Sell** a pet by holding its prompt, for 10 times its income plus any cash left on its pedestal.
 
 ## Getting started
 
@@ -34,12 +35,12 @@ lune run tests/run         # unit tests for the pure modules
 
 | Path | Lands in | What it holds |
 | --- | --- | --- |
-| `src/shared` | `ReplicatedStorage.Shared` | Config (`Pets`, `Economy`), `Remotes`, `Validate`, `Rolls`, `Luck`, `Janitor` |
+| `src/shared` | `ReplicatedStorage.Shared` | Config (`Pets`, `Economy`), `PetInfo`, `Format`, `Remotes`, `Validate`, `Rolls`, `Luck`, `Janitor` |
 | `src/server` | `ServerScriptService.Server` | `Main`, `Gate`, `RateLimiter`, `Reach`, `DataSchema`, `ModelFactory`, `DevScaffold`, `Services/*` |
-| `src/client` | `StarterPlayerScripts.Client` | HUD: toasts, rare-hatch reveal, luck label, egg countdowns, prompt filtering |
+| `src/client` | `StarterPlayerScripts.Client` | HUD: cash and luck display, hatch animation, toasts, egg countdowns, rainbow pets, prompt filtering |
 | `tests` | not synced | Lune unit tests |
 
-Eggs, pets, prices, hatch times and odds live in `src/shared/Config/Pets.luau`. Money, luck and slot counts live in `src/shared/Config/Economy.luau`.
+Eggs, pets, mutations, prices, hatch times and odds live in `src/shared/Config/Pets.luau`. Money, luck, offline earnings and slot counts live in `src/shared/Config/Economy.luau`.
 
 ## Building a real map
 
@@ -50,7 +51,7 @@ Each plot is a Model under `workspace.Plots` with `PrimaryPart` set to `Base` an
 | `Base` | BasePart | The plot's floor |
 | `Spawn` | BasePart | Where the owner's character is moved |
 | `LuckBoard` | BasePart | Holds the Upgrade Luck prompt and the luck sign |
-| `Shop/Basic`, `Shop/Golden`, `Shop/Cosmic` | BasePart | One stand per egg; holds the Buy prompt and the odds sign |
+| `Shop/<egg id>` (Basic, Golden, Cosmic, Volcano, Void) | BasePart | One stand per egg; holds the Buy prompt and the odds sign |
 | `Incubators/Incubator1`..`Incubator4` | BasePart | Where bought eggs sit while they count down |
 | `Pedestals/Pedestal1`..`Pedestal8` | BasePart | Where hatched pets stand |
 | `Buttons/Button1`..`Button8` | BasePart | The green collect button for the pedestal with the same number |
@@ -59,10 +60,10 @@ The server checks all of this at boot and errors with the missing name. Pet and 
 
 ## Security model
 
-- **Rolls** happen on the server with `Random.new()` when an egg hatches, so no client can force a rare pet. Luck comes from saved data, not the client.
+- **Rolls** (pet and mutation) happen on the server with `Random.new()` when an egg hatches, so no client can force a rare pet. Luck comes from saved data, not the client. The hatch animation only plays the result the server already decided.
 - **Every action is a server-side `ProximityPrompt`** (buy, hatch, sell, upgrade luck). Each handler checks the prompt rate limit, that the player owns the base, and that they are within reach. Prices come from server config.
 - **Hatch timers** are stored as server unix time. The client only draws the countdown; hatching early is refused.
-- **Income** is added on the server once a second from saved pedestals; collecting needs the owner's own character to touch that pedestal's button.
+- **Income** is added on the server once a second from saved pedestals, and offline earnings come from a server timestamp saved with the profile; collecting needs the owner's own character to touch that pedestal's button.
 - **Remotes and prompts** are rate limited per player through `Gate`, which also checks remote argument types and count and kicks after 20 failures in 60 seconds. There is no client-to-server remote; the only remote is the server's `Notify`.
 - **Cleanup**: everything tied to a plot (prompts, connections, models, signs) is added to that plot's `Janitor` and torn down in one call when the player leaves.
-- **Saving** uses ProfileStore session locks, so data cannot be duplicated across servers. Loaded data is sanitized: whole numbers in range, only known pets and eggs in valid slots.
+- **Saving** uses ProfileStore session locks, so data cannot be duplicated across servers. Loaded data is sanitized: whole numbers in range, only known pets, eggs and mutations in valid slots.

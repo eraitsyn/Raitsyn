@@ -5,6 +5,7 @@ local process = require("@lune/process")
 
 local specs = {
 	"DataSchema",
+	"Format",
 	"Luck",
 	"RateLimiter",
 	"Rolls",

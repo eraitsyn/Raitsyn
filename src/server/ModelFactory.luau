@@ -5,9 +5,15 @@
 	standing on y = 0.
 ]]
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
+local Format = require(ReplicatedStorage.Shared.Format)
+local PetInfo = require(ReplicatedStorage.Shared.PetInfo)
+
+-- The client cycles the colour of every part tagged with this.
+local RAINBOW_TAG = "RainbowPart"
 
 local function rgb(color: { number }): Color3
 	return Color3.fromRGB(color[1], color[2], color[3])
@@ -67,9 +73,35 @@ function ModelFactory.Tag(adornee: BasePart, height: number, lines: { { any } })
 	return tag
 end
 
-function ModelFactory.BuildPet(petId: string): Model
+-- Gives a pet its mutation look: gold, see-through diamond, or cycling rainbow.
+local function applyMutation(model: Model, mutation: any)
+	local mutationColor = rgb(mutation.color)
+	for _, child in model:GetChildren() do
+		if child:IsA("BasePart") and not string.find(child.Name, "Eye") then
+			if mutation.id == "Golden" then
+				child.Color = mutationColor
+				child.Material = Enum.Material.Foil
+				child.Reflectance = 0.3
+			elseif mutation.id == "Diamond" then
+				child.Color = mutationColor
+				child.Material = Enum.Material.Glass
+				child.Transparency = 0.25
+				child.Reflectance = 0.4
+			else
+				child.Material = Enum.Material.Neon
+				CollectionService:AddTag(child, RAINBOW_TAG)
+			end
+		end
+	end
+	local sparkles = Instance.new("Sparkles")
+	sparkles.SparkleColor = mutationColor
+	sparkles.Parent = model.PrimaryPart
+end
+
+function ModelFactory.BuildPet(petId: string, mutationId: string?): Model
 	local pet = PetConfig.Pets[petId]
 	assert(pet, `Unknown pet {petId}`)
+	local mutation = mutationId and PetInfo.MutationsById[mutationId]
 	local color = rgb(pet.color)
 	local rarityColor = rarityColors[pet.rarity]
 
@@ -94,14 +126,17 @@ function ModelFactory.BuildPet(petId: string): Model
 		light.Parent = body
 	end
 
-	ModelFactory.Tag(body, 3.5, {
-		{ pet.name, Color3.new(1, 1, 1) },
-		{ pet.rarity, rarityColor },
-		{ `${pet.income}/s`, Color3.fromRGB(120, 255, 120) },
-	})
-
 	model.PrimaryPart = body
 	model.WorldPivot = CFrame.new()
+	if mutation then
+		applyMutation(model, mutation)
+	end
+
+	ModelFactory.Tag(body, 3.5, {
+		{ PetInfo.Name(petId, mutationId), if mutation then rgb(mutation.color) else Color3.new(1, 1, 1) },
+		{ pet.rarity, rarityColor },
+		{ `{Format.Cash(PetInfo.Income(petId, mutationId))}/s`, Color3.fromRGB(120, 255, 120) },
+	})
 	return model
 end
 

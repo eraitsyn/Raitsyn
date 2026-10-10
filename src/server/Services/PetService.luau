@@ -10,7 +10,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
-local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
+local Format = require(ReplicatedStorage.Shared.Format)
+local PetInfo = require(ReplicatedStorage.Shared.PetInfo)
 local DataSchema = require(script.Parent.Parent.DataSchema)
 local Gate = require(script.Parent.Parent.Gate)
 local ModelFactory = require(script.Parent.Parent.ModelFactory)
@@ -43,10 +44,6 @@ function PetService.CanAct(player: Player, state: PlotState, position: Vector3):
 		and Reach.Within(player, position, Economy.ReachDistance)
 end
 
-function PetService.SellValue(petId: string): number
-	return PetConfig.Pets[petId].income * Economy.SellPerIncome
-end
-
 local function buttonLabel(state: PlotState, key: string): TextLabel?
 	local button = PlotService.Part(state.plot, "Buttons", "Button", key)
 	local tag = button:FindFirstChild("CashTag")
@@ -57,7 +54,7 @@ local function updateButton(state: PlotState, key: string)
 	local textLabel = buttonLabel(state, key)
 	if textLabel then
 		local cash = state.data.PedestalCash[key] or 0
-		textLabel.Text = if state.data.Pedestals[key] then `${cash}` else ""
+		textLabel.Text = if state.data.Pedestals[key] then Format.Cash(cash) else ""
 	end
 end
 
@@ -74,14 +71,16 @@ local function trySell(player: Player, state: PlotState, key: string, model: Mod
 		return
 	end
 	local petId = state.data.Pedestals[key]
+	local mutationId = state.data.PedestalMutations[key]
 	-- Pay out what the pedestal earned too, so selling never loses cash.
-	local payout = PetService.SellValue(petId) + (state.data.PedestalCash[key] or 0)
+	local payout = PetInfo.SellValue(petId, mutationId) + (state.data.PedestalCash[key] or 0)
 	state.data.Pedestals[key] = nil
 	state.data.PedestalCash[key] = nil
+	state.data.PedestalMutations[key] = nil
 	clearModel(state, key)
 	updateButton(state, key)
 	CurrencyService.Add(player, payout)
-	Gate.Notify(player, "Sold", petId)
+	Gate.Notify(player, "Sold", petId, { mutation = mutationId, amount = payout })
 end
 
 -- Shows the pet saved on this pedestal. Call after changing data.Pedestals[key].
@@ -92,14 +91,15 @@ function PetService.ShowPedestal(state: PlotState, key: string)
 	if petId == nil then
 		return
 	end
-	local model = ModelFactory.BuildPet(petId)
+	local mutationId = state.data.PedestalMutations[key]
+	local model = ModelFactory.BuildPet(petId, mutationId)
 	ModelFactory.StandOn(model, PlotService.Part(state.plot, "Pedestals", "Pedestal", key))
 	model.Parent = state.plot
 	state.pets[key] = model
 
 	local prompt = PetService.OwnerPrompt(model.PrimaryPart :: BasePart, "Sell", state.player)
 	prompt.ActionText = "Sell"
-	prompt.ObjectText = `{PetConfig.Pets[petId].name} for ${PetService.SellValue(petId)}`
+	prompt.ObjectText = `{PetInfo.Name(petId, mutationId)} for {Format.Cash(PetInfo.SellValue(petId, mutationId))}`
 	prompt.HoldDuration = 1
 	prompt.Triggered:Connect(function(player: Player)
 		trySell(player, state, key, model)
@@ -107,10 +107,11 @@ function PetService.ShowPedestal(state: PlotState, key: string)
 end
 
 -- Puts a pet on the lowest free pedestal. Returns its key, or nil when all are full.
-function PetService.Give(state: PlotState, petId: string): string?
+function PetService.Give(state: PlotState, petId: string, mutationId: string?): string?
 	local key = DataSchema.FreeKey(state.data.Pedestals, Economy.PedestalCount)
 	if key then
 		state.data.Pedestals[key] = petId
+		state.data.PedestalMutations[key] = mutationId
 		PetService.ShowPedestal(state, key)
 	end
 	return key
@@ -120,8 +121,30 @@ function PetService.HasFreePedestal(state: PlotState): boolean
 	return DataSchema.FreeKey(state.data.Pedestals, Economy.PedestalCount) ~= nil
 end
 
+-- Adds what the pets earned while the player was away into their pedestals.
+local function payOffline(state: PlotState)
+	local now = os.time()
+	local lastSeen = state.data.LastSeen
+	state.data.LastSeen = now
+	if lastSeen <= 0 or lastSeen >= now then
+		return
+	end
+	local seconds = math.min(now - lastSeen, Economy.OfflineCapSeconds)
+	local total = 0
+	for key, petId in state.data.Pedestals do
+		local earned =
+			math.floor(PetInfo.Income(petId, state.data.PedestalMutations[key]) * seconds * Economy.OfflineRate)
+		state.data.PedestalCash[key] = math.min(Economy.MaxCash, (state.data.PedestalCash[key] or 0) + earned)
+		total += earned
+	end
+	if total > 0 then
+		Gate.Notify(state.player, "OfflineEarned", nil, { amount = total, seconds = seconds })
+	end
+end
+
 -- Places saved pets and wires the collect buttons. Undone by the plot's janitor.
 function PetService.Setup(state: PlotState)
+	payOffline(state)
 	for index = 1, Economy.PedestalCount do
 		local key = tostring(index)
 		local button = PlotService.Part(state.plot, "Buttons", "Button", key)
@@ -151,6 +174,7 @@ function PetService.Setup(state: PlotState)
 				state.data.PedestalCash[key] = nil
 				updateButton(state, key)
 				CurrencyService.Add(state.player, cash)
+				Gate.Notify(state.player, "Collected", nil, { amount = cash, key = key })
 			end
 		end))
 
@@ -168,9 +192,12 @@ end
 task.spawn(function()
 	while true do
 		task.wait(1)
+		local now = os.time()
 		for _, state in PlotService.All() do
+			state.data.LastSeen = now
 			for key, petId in state.data.Pedestals do
-				local cash = (state.data.PedestalCash[key] or 0) + PetConfig.Pets[petId].income
+				local income = PetInfo.Income(petId, state.data.PedestalMutations[key])
+				local cash = (state.data.PedestalCash[key] or 0) + income
 				state.data.PedestalCash[key] = math.min(Economy.MaxCash, cash)
 				updateButton(state, key)
 			end

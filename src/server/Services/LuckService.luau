@@ -8,6 +8,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
+local Format = require(ReplicatedStorage.Shared.Format)
 local Luck = require(ReplicatedStorage.Shared.Luck)
 local Gate = require(script.Parent.Parent.Gate)
 local ModelFactory = require(script.Parent.Parent.ModelFactory)
@@ -30,12 +31,12 @@ local function refreshBoard(state: PlotState, prompt: ProximityPrompt)
 	local luckText = Luck.Text(Luck.Multiplier(Economy, level))
 	local tag = ModelFactory.Tag(board, 2, {
 		{ `Luck: {luckText}`, Color3.fromRGB(120, 255, 120) },
-		{ if cost then `Next: ${cost}` else "Max luck!", Color3.new(1, 1, 1) },
+		{ if cost then `Next: {Format.Cash(cost)}` else "Max luck!", Color3.new(1, 1, 1) },
 	})
 	tag.Name = "LuckTag"
 	state.janitor:Add(tag)
 
-	prompt.ObjectText = if cost then `Luck {luckText} for ${cost}` else "Max luck"
+	prompt.ObjectText = if cost then `Luck {luckText} for {Format.Cash(cost)}` else "Max luck"
 	prompt.Enabled = cost ~= nil
 	state.player:SetAttribute("Luck", Luck.Multiplier(Economy, level))
 end

@@ -82,13 +82,26 @@ function Gate.AllowPrompt(player: Player): boolean
 	return true
 end
 
-function Gate.Notify(player: Player, kind: string, id: string?)
-	Remotes.Get("Notify"):FireClient(player, { kind = kind, id = id })
+local function message(kind: string, id: string?, extra: { [string]: any }?): { [string]: any }
+	local payload: { [string]: any } = { kind = kind, id = id }
+	if extra then
+		for key, value in extra do
+			payload[key] = value
+		end
+	end
+	return payload
+end
+
+-- `extra` adds fields such as the hatched pet's mutation or an amount of cash.
+function Gate.Notify(player: Player, kind: string, id: string?, extra: { [string]: any }?)
+	Remotes.Get("Notify"):FireClient(player, message(kind, id, extra))
 end
 
 -- Tells every player, for example about a rare hatch. `by` is the player it is about.
-function Gate.NotifyAll(kind: string, id: string?, by: Player)
-	Remotes.Get("Notify"):FireAllClients({ kind = kind, id = id, by = by.DisplayName })
+function Gate.NotifyAll(kind: string, id: string?, by: Player, extra: { [string]: any }?)
+	local payload = message(kind, id, extra)
+	payload.by = by.DisplayName
+	Remotes.Get("Notify"):FireAllClients(payload)
 end
 
 Players.PlayerRemoving:Connect(function(player)

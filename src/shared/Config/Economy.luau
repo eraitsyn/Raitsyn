@@ -12,6 +12,10 @@ return {
 	LuckCostGrowth = 2.5,
 	MaxLuckLevel = 20,
 
+	-- Offline earnings: while away, pets earn this share of their income, for at most this long.
+	OfflineRate = 0.5,
+	OfflineCapSeconds = 8 * 60 * 60,
+
 	-- Prompts
 	PromptDistance = 10, -- studs, ProximityPrompt.MaxActivationDistance
 	ReachDistance = 14, -- studs, server backstop for every prompt

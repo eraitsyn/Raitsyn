@@ -26,7 +26,7 @@ local BUTTON = Color3.fromRGB(80, 230, 80)
 local PEDESTAL_COLUMNS = { -18, -6, 6, 18 }
 local PEDESTAL_ROWS = { -4, 12 }
 local INCUBATOR_ROWS = { -10, -1, 8, 17 }
-local SHOP_COLUMNS = { -20, 0, 20 }
+local SHOP_COLUMNS = { -28, -14, 0, 14, 28 }
 
 local DevScaffold = {}
 
@@ -64,7 +64,7 @@ local function buildPlot(index: number): Model
 	luckBoard.Material = Enum.Material.SmoothPlastic
 
 	local shop = folder("Shop", plot)
-	assert(#PetConfig.Eggs <= #SHOP_COLUMNS, "DevScaffold has room for 3 egg stands")
+	assert(#PetConfig.Eggs <= #SHOP_COLUMNS, "DevScaffold has room for 5 egg stands")
 	for position, egg in PetConfig.Eggs do
 		part(egg.id, Vector3.new(6, 2, 6), origin * CFrame.new(SHOP_COLUMNS[position], 1.5, -22), PEDESTAL, shop)
 	end

@@ -1,7 +1,7 @@
 --[[
 	DataSchema: the saved player data shape and its load-time cleanup.
 
-	Pedestals, PedestalCash and Incubators are keyed by slot number as a string
+	Pedestals, PedestalCash, PedestalMutations and Incubators are keyed by slot number as a string
 	("1".."8"). String keys keep each table a dictionary, which DataStores save
 	reliably even with gaps.
 	No Roblox dependencies, so it is unit tested outside Studio.
@@ -15,12 +15,15 @@ export type PlayerData = {
 	LuckLevel: number,
 	Pedestals: { [string]: string }, -- pedestal key -> pet id
 	PedestalCash: { [string]: number }, -- pedestal key -> uncollected cash
+	PedestalMutations: { [string]: string }, -- pedestal key -> mutation id (absent for normal pets)
 	Incubators: { [string]: Incubation }, -- incubator key -> egg waiting to hatch
+	LastSeen: number, -- os.time() of the last income tick, for offline earnings (0 = never)
 }
 
 export type Limits = {
 	pets: { [string]: any },
 	eggs: { [string]: any },
+	mutations: { [string]: any },
 	pedestals: number,
 	incubators: number,
 	maxLuckLevel: number,
@@ -29,15 +32,17 @@ export type Limits = {
 
 local DataSchema = {}
 
-DataSchema.Version = 3
+DataSchema.Version = 4
 
 DataSchema.Template = {
-	Version = 3,
+	Version = 4,
 	Cash = 100,
 	LuckLevel = 0,
 	Pedestals = {},
 	PedestalCash = {},
+	PedestalMutations = {},
 	Incubators = {},
+	LastSeen = 0,
 } :: PlayerData
 
 -- Fields from earlier prototypes (dropper tycoon, gods tycoon).
@@ -56,10 +61,12 @@ function DataSchema.Sanitize(data: any, limits: Limits)
 	data.Version = DataSchema.Version
 	data.Cash = wholeNumber(data.Cash, limits.maxCash)
 	data.LuckLevel = wholeNumber(data.LuckLevel, limits.maxLuckLevel)
+	data.LastSeen = wholeNumber(data.LastSeen, 2 ^ 40)
 
 	local oldPedestals = if type(data.Pedestals) == "table" then data.Pedestals else {}
 	local oldCash = if type(data.PedestalCash) == "table" then data.PedestalCash else {}
-	local pedestals, pedestalCash = {}, {}
+	local oldMutations = if type(data.PedestalMutations) == "table" then data.PedestalMutations else {}
+	local pedestals, pedestalCash, mutations = {}, {}, {}
 	for index = 1, limits.pedestals do
 		local key = tostring(index)
 		local petId = oldPedestals[key]
@@ -69,10 +76,15 @@ function DataSchema.Sanitize(data: any, limits: Limits)
 			if cash > 0 then
 				pedestalCash[key] = cash
 			end
+			local mutation = oldMutations[key]
+			if type(mutation) == "string" and limits.mutations[mutation] ~= nil then
+				mutations[key] = mutation
+			end
 		end
 	end
 	data.Pedestals = pedestals
 	data.PedestalCash = pedestalCash
+	data.PedestalMutations = mutations
 
 	local oldIncubators = if type(data.Incubators) == "table" then data.Incubators else {}
 	local incubators = {}

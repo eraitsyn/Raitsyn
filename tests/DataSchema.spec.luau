@@ -4,6 +4,7 @@ local T = require("./TestKit")
 local LIMITS = {
 	pets = { Puppy = {}, Unicorn = {} },
 	eggs = { Basic = {} },
+	mutations = { Golden = {} },
 	pedestals = 8,
 	incubators = 4,
 	maxLuckLevel = 20,
@@ -40,6 +41,20 @@ return {
 		T.equal(data.PedestalCash["1"], 12)
 		T.equal(data.PedestalCash["2"], nil) -- no pet there any more
 		T.equal(data.PedestalCash["8"], nil)
+	end,
+	["keeps known mutations only on pedestals that have a pet"] = function()
+		local data = sanitize({
+			Pedestals = { ["1"] = "Puppy", ["2"] = "Puppy" },
+			PedestalMutations = { ["1"] = "Golden", ["2"] = "Fake", ["3"] = "Golden" },
+		})
+		T.equal(data.PedestalMutations["1"], "Golden")
+		T.equal(data.PedestalMutations["2"], nil)
+		T.equal(data.PedestalMutations["3"], nil)
+	end,
+	["LastSeen defaults to 0 and stays whole"] = function()
+		T.equal(sanitize({}).LastSeen, 0)
+		T.equal(sanitize({ LastSeen = 1700000000.6 }).LastSeen, 1700000000)
+		T.equal(sanitize({ LastSeen = "x" }).LastSeen, 0)
 	end,
 	["keeps only valid incubations"] = function()
 		local data = sanitize({

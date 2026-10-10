@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
 local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
 local Luck = require(ReplicatedStorage.Shared.Luck)
+local PetInfo = require(ReplicatedStorage.Shared.PetInfo)
 local Rolls = require(ReplicatedStorage.Shared.Rolls)
 local DataSchema = require(script.Parent.Parent.DataSchema)
 local Gate = require(script.Parent.Parent.Gate)
@@ -24,12 +25,10 @@ type PlotState = PlotService.PlotState
 -- The client counts down every egg with this tag, reading its ReadyAt attribute.
 local EGG_TAG = "IncubatingEgg"
 local ANNOUNCE_RARITIES = { Mythical = true, Secret = true }
+local ANNOUNCE_MUTATIONS = { Rainbow = true }
 
 local random = Random.new()
-local eggsById: { [string]: any } = {}
-for _, egg in PetConfig.Eggs do
-	eggsById[egg.id] = egg
-end
+local eggsById = PetInfo.EggsById
 
 local function rarityOf(petId: string): string
 	return PetConfig.Pets[petId].rarity
@@ -61,18 +60,27 @@ local function tryHatch(player: Player, state: PlotState, key: string, model: Mo
 
 	local luck = Luck.Multiplier(Economy, state.data.LuckLevel)
 	local entries = Rolls.WithLuck(eggsById[incubation.egg].pets, rarityOf, PetConfig.LuckyRarities, luck)
-	local petId = Rolls.Pick(entries, function()
+	local function nextNumber()
 		return random:NextNumber()
-	end)
+	end
+	local petId = Rolls.Pick(entries, nextNumber)
+	local mutationId = Rolls.Mutation(PetConfig.Mutations, nextNumber)
+	local chance = 0
+	for _, entry in Rolls.Chances(entries) do
+		if entry.id == petId then
+			chance = entry.chance
+		end
+	end
 
 	-- Nothing above yields, so the egg cannot be hatched twice.
 	state.data.Incubators[key] = nil
 	clearModel(state, key)
-	PetService.Give(state, petId)
+	PetService.Give(state, petId, mutationId)
 
-	Gate.Notify(player, "Hatched", petId)
-	if ANNOUNCE_RARITIES[rarityOf(petId)] then
-		Gate.NotifyAll("ServerHatch", petId, player)
+	local details = { egg = incubation.egg, mutation = mutationId, odds = Rolls.OneIn(chance) }
+	Gate.Notify(player, "Hatched", petId, details)
+	if ANNOUNCE_RARITIES[rarityOf(petId)] or ANNOUNCE_MUTATIONS[mutationId or ""] then
+		Gate.NotifyAll("ServerHatch", petId, player, details)
 	end
 end
 

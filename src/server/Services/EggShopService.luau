@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
 local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
+local Format = require(ReplicatedStorage.Shared.Format)
 local Luck = require(ReplicatedStorage.Shared.Luck)
 local Rolls = require(ReplicatedStorage.Shared.Rolls)
 local Gate = require(script.Parent.Parent.Gate)
@@ -41,7 +42,7 @@ function EggShopService.RefreshSigns(state: PlotState)
 			old:Destroy()
 		end
 
-		local lines = { { `{egg.name}  ${egg.price}`, Color3.new(1, 1, 1) } }
+		local lines = { { `{egg.name}  {Format.Cash(egg.price)}`, Color3.new(1, 1, 1) } }
 		local chances = Rolls.Chances(Rolls.WithLuck(egg.pets, rarityOf, PetConfig.LuckyRarities, luck))
 		for _, chance in chances do
 			local pet = PetConfig.Pets[chance.id]
@@ -52,7 +53,8 @@ function EggShopService.RefreshSigns(state: PlotState)
 		end
 		local tag = ModelFactory.Tag(part, 9, lines)
 		tag.Name = "OddsTag"
-		tag.Size = UDim2.fromOffset(240, 22 * #lines)
+		-- Sized in studs so neighbouring stands' signs never overlap from far away.
+		tag.Size = UDim2.fromScale(12, 0.9 * #lines)
 		state.janitor:Add(tag)
 	end
 end
@@ -83,7 +85,7 @@ function EggShopService.Setup(state: PlotState)
 
 		local prompt = state.janitor:Add(PetService.OwnerPrompt(part, "Buy", state.player))
 		prompt.ActionText = "Buy"
-		prompt.ObjectText = `{egg.name} (${egg.price})`
+		prompt.ObjectText = `{egg.name} ({Format.Cash(egg.price)})`
 		prompt.HoldDuration = 0
 		prompt.Triggered:Connect(function(player: Player)
 			tryBuy(player, state, egg)

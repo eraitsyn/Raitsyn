@@ -8,6 +8,7 @@
 
 export type Entry = { id: string, weight: number }
 export type Chance = { id: string, chance: number }
+export type Mutation = { id: string, oneIn: number }
 
 local Rolls = {}
 
@@ -58,6 +59,20 @@ function Rolls.Pick(entries: { Entry }, random: () -> number): string
 		end
 	end
 	return entries[#entries].id
+end
+
+-- Rolls a mutation: each one has its own 1-in-N chance, checked rarest first
+-- with one random number. Returns the mutation id, or nil for a normal pet.
+function Rolls.Mutation(mutations: { Mutation }, random: () -> number): string?
+	local roll = random()
+	local edge = 0
+	for _, mutation in mutations do
+		edge += 1 / mutation.oneIn
+		if roll < edge then
+			return mutation.id
+		end
+	end
+	return nil
 end
 
 -- "1 in N" text for a chance, rounded so small odds stay readable.

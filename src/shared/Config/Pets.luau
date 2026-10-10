@@ -10,7 +10,11 @@
 	income     cash per second a pet earns on a pedestal
 	color      RGB 0-255; plain numbers keep this file free of Roblox types
 
-	Pet and egg ids are saved in player data. Renaming one removes it from
+	Mutations are rolled separately on every hatch. oneIn is the chance of that
+	mutation ("1 in 20"); a pet with none is a normal pet. A mutation multiplies
+	the pet's income and sell value.
+
+	Pet, egg and mutation ids are saved in player data. Renaming one removes it from
 	existing saves, so add new ids instead.
 ]]
 
@@ -23,6 +27,13 @@ return {
 		{ name = "Legendary", color = { 255, 170, 40 } },
 		{ name = "Mythical", color = { 255, 60, 90 } },
 		{ name = "Secret", color = { 30, 30, 30 } },
+	},
+
+	-- Rarest first. Luck does not change these.
+	Mutations = {
+		{ id = "Rainbow", name = "Rainbow", oneIn = 500, multiplier = 10, color = { 255, 120, 220 } },
+		{ id = "Diamond", name = "Diamond", oneIn = 100, multiplier = 5, color = { 150, 230, 255 } },
+		{ id = "Golden", name = "Golden", oneIn = 20, multiplier = 2, color = { 255, 200, 40 } },
 	},
 
 	-- Luck boosts only these, so it makes rare pets likelier without touching commons.
@@ -47,6 +58,17 @@ return {
 		CometFox = { name = "Comet Fox", rarity = "Legendary", income = 8000, color = { 120, 200, 255 } },
 		NebulaDragon = { name = "Nebula Dragon", rarity = "Mythical", income = 25000, color = { 160, 80, 220 } },
 		GalaxyWhale = { name = "Galaxy Whale", rarity = "Secret", income = 100000, color = { 40, 30, 90 } },
+
+		Salamander = { name = "Salamander", rarity = "Rare", income = 40000, color = { 255, 110, 50 } },
+		LavaHound = { name = "Lava Hound", rarity = "Epic", income = 90000, color = { 200, 50, 20 } },
+		MagmaGolem = { name = "Magma Golem", rarity = "Legendary", income = 250000, color = { 90, 40, 30 } },
+		FireDragon = { name = "Fire Dragon", rarity = "Mythical", income = 900000, color = { 255, 70, 0 } },
+		InfernoKing = { name = "Inferno King", rarity = "Secret", income = 4000000, color = { 255, 30, 30 } },
+
+		ShadowCat = { name = "Shadow Cat", rarity = "Epic", income = 1500000, color = { 50, 40, 70 } },
+		VoidBat = { name = "Void Bat", rarity = "Legendary", income = 4000000, color = { 90, 30, 140 } },
+		AbyssSerpent = { name = "Abyss Serpent", rarity = "Mythical", income = 15000000, color = { 20, 60, 90 } },
+		EclipseDragon = { name = "Eclipse Dragon", rarity = "Secret", income = 80000000, color = { 10, 10, 20 } },
 	},
 
 	-- Shop order is the order of this list.
@@ -92,6 +114,33 @@ return {
 				{ id = "CometFox", weight = 25 },
 				{ id = "NebulaDragon", weight = 4.9 },
 				{ id = "GalaxyWhale", weight = 0.1 },
+			},
+		},
+		{
+			id = "Volcano",
+			name = "Volcano Egg",
+			price = 2500000,
+			hatchTime = 600,
+			color = { 230, 70, 20 },
+			pets = {
+				{ id = "Salamander", weight = 60 },
+				{ id = "LavaHound", weight = 28 },
+				{ id = "MagmaGolem", weight = 10 },
+				{ id = "FireDragon", weight = 1.9 },
+				{ id = "InfernoKing", weight = 0.1 },
+			},
+		},
+		{
+			id = "Void",
+			name = "Void Egg",
+			price = 100000000,
+			hatchTime = 1800,
+			color = { 40, 10, 60 },
+			pets = {
+				{ id = "ShadowCat", weight = 65 },
+				{ id = "VoidBat", weight = 28 },
+				{ id = "AbyssSerpent", weight = 6.9 },
+				{ id = "EclipseDragon", weight = 0.1 },
 			},
 		},
 	},

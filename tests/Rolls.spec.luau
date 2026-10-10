@@ -44,6 +44,24 @@ return {
 		local chances = Rolls.Chances(Rolls.WithLuck(ENTRIES, rarityOf, { Rare = true }, 1))
 		T.equal(chanceOf(chances, "Common"), 0.75)
 	end,
+	["Mutation checks rarest first and is usually nil"] = function()
+		local mutations = { { id = "Rainbow", oneIn = 100 }, { id = "Golden", oneIn = 10 } }
+		T.equal(Rolls.Mutation(mutations, sequence({ 0 })), "Rainbow")
+		T.equal(Rolls.Mutation(mutations, sequence({ 0.0099 })), "Rainbow")
+		T.equal(Rolls.Mutation(mutations, sequence({ 0.01 })), "Golden")
+		T.equal(Rolls.Mutation(mutations, sequence({ 0.1099 })), "Golden")
+		T.equal(Rolls.Mutation(mutations, sequence({ 0.11 })), nil)
+	end,
+	["shipped mutations are rarest first with whole multipliers"] = function()
+		local total, last = 0, math.huge
+		for _, mutation in PetConfig.Mutations do
+			T.truthy(mutation.oneIn <= last, `{mutation.id} is out of order`)
+			T.truthy(mutation.multiplier > 1 and mutation.multiplier % 1 == 0, `{mutation.id} multiplier`)
+			last = mutation.oneIn
+			total += 1 / mutation.oneIn
+		end
+		T.truthy(total < 1, "mutation chances add up to 1 or more")
+	end,
 	["OneIn formats odds"] = function()
 		T.equal(Rolls.OneIn(0.5), "1 in 2")
 		T.equal(Rolls.OneIn(0.4), "1 in 2.5")
