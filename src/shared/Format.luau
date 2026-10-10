@@ -30,4 +30,20 @@ function Format.Cash(value: number): string
 	return "$" .. Format.Short(value)
 end
 
+-- "x1.25" style text for a multiplier.
+function Format.Multiplier(value: number): string
+	return `x{math.floor(value * 100 + 0.5) / 100}`
+end
+
+-- "45s", "2:05" or "1h 20m".
+function Format.Duration(seconds: number): string
+	seconds = math.max(0, math.ceil(seconds))
+	if seconds >= 3600 then
+		return `{seconds // 3600}h {seconds % 3600 // 60}m`
+	elseif seconds >= 60 then
+		return string.format("%d:%02d", seconds // 60, seconds % 60)
+	end
+	return `{seconds}s`
+end
+
 return Format

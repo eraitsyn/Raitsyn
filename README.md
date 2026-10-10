@@ -1,26 +1,28 @@
-# Raitsyn
+# Egg RNG
 
-A server-authoritative Egg RNG tycoon in Luau. Every player gets their own base with an egg spinner, four incubators, eight pet pedestals and a luck board. Spin for a random egg, buy it if you like it (or spin again), wait for it to hatch, and the pet it rolls goes onto a pedestal where it earns cash every second. Step on a pedestal's green button to collect.
+A Roblox egg-rolling simulator in Luau. Roll random eggs, decide to buy or reroll, hatch them on a timer, collect pets, and use them to earn money and unlock new biomes.
 
-The server owns every number and every roll. Clients only trigger prompts; the server decides what happens.
+Every player gets their own lane: a base at the front and their own eleven biomes behind it (Farm, Forest, Desert, Snow, Jungle, Ocean, Volcano, Prehistoric, Kingdom, Skylands, Cosmic). Nothing is shared and there is no stealing. Other players can only look at your base.
+
+The server owns every number and every roll; the client only shows state and asks.
 
 ## How it plays
 
-1. **Spin** the egg spinner in your base. It lands on a random egg, and rarer eggs come up less often: Basic (Common), Golden (Uncommon), Cosmic (Rare), Volcano (Epic), Void (Legendary). The sign above the spinner shows each egg's chance, adjusted for your luck.
-   **Buy it or spin again.** The egg you landed on sits on the spinner with its price and a sign listing every pet it can hatch as "1 in N". Press F to buy it if you have the cash, or spin again for a different egg.
-2. **Incubate.** The egg goes into a free incubator and counts down. The timer keeps running while you are offline.
-3. **Hatch** it when the timer hits zero. The egg wobbles and cracks open on screen, and the server rolls the pet and places it on a free pedestal. Mythical, Secret and Rainbow hatches are announced to the whole server.
-4. **Mutations** are rolled on every hatch: Golden (1 in 20, x2 income), Diamond (1 in 100, x5) and Rainbow (1 in 500, x10). Mutated pets look different and sell for more.
-5. **Collect.** Each pet adds its income to its pedestal once a second. Step on the pedestal's green button to collect it. While you are offline, pets keep earning at half rate for up to 8 hours.
-6. **Upgrade luck** at the luck board (x1.25, x1.5, ...). Luck shifts the odds toward Rare and better pets.
-7. **Sell** a pet by holding its prompt, for 10 times its income plus any cash left on its pedestal.
+1. You spawn in your base. Walk out to your **Farm Egg Station**.
+2. Standing on a station opens the roll panel: one egg offer with its rarity, price, hatch time and the pets it can hatch ("1 in N"). Press **BUY** if you can afford it, or **REROLL** for another offer.
+3. Bought eggs go to your **egg inventory**. Open **Eggs** and press **Place** to put one in a free **hatch slot**. It counts down, also while you are offline.
+4. When it is ready, go to the slot and **Open** it. The egg shakes, cracks and reveals the pet; rarer pets get bigger effects.
+5. The pet goes to your **pet inventory** and is equipped on a free **platform**. Equipped pets earn money every second into your **Collector**; step on it to collect.
+6. Spend money on better eggs, **upgrades** (Upgrade Station or the Upgrades button) and **unlocking the next biome** (walk up to its gate). The **Teleport** button jumps to any unlocked biome.
+
+Each biome's station offers three eggs: Standard (often), Rare (sometimes, 5x price) and Royal (rarely, 25x price, can hatch the biome's best pet). Pets come in ten rarities: Common, Uncommon, Rare, Epic, Legendary, Mythic, Exotic, Divine, Secret, Cosmic. On top of rarity, each hatch can roll a Golden (x2), Diamond (x5) or Rainbow (x10) mutation.
 
 ## Getting started
 
 1. Install the toolchain with [Rokit](https://github.com/rojo-rbx/rokit): `rokit install`
 2. Install packages: `wally install` (adds ProfileStore under `ServerPackages/`)
 3. Serve into Studio: `rojo serve`, then connect from the Rojo plugin.
-4. Press Play. In Studio, if the place has no `workspace.Plots`, four placeholder bases are built for you.
+4. Press Play. If the place has no `workspace.Lanes`, the whole map is built for you.
 
 Turn on **Game Settings > Security > Enable Studio Access to API Services** to save data in Studio. Without it, ProfileStore uses an in-memory mock.
 
@@ -36,35 +38,37 @@ lune run tests/run         # unit tests for the pure modules
 
 | Path | Lands in | What it holds |
 | --- | --- | --- |
-| `src/shared` | `ReplicatedStorage.Shared` | Config (`Pets`, `Economy`), `PetInfo`, `Format`, `Remotes`, `Validate`, `Rolls`, `Luck`, `Janitor` |
-| `src/server` | `ServerScriptService.Server` | `Main`, `Gate`, `RateLimiter`, `Reach`, `DataSchema`, `ModelFactory`, `DevScaffold`, `Services/*` |
-| `src/client` | `StarterPlayerScripts.Client` | HUD: cash and luck display, hatch animation, toasts, egg countdowns, rainbow pets, prompt filtering |
+| `src/shared` | `ReplicatedStorage.Shared` | Config (`Pets`, `Economy`), `PetInfo`, `Rolls`, `Upgrades`, `Format`, `Remotes`, `Validate`, `Janitor` |
+| `src/server` | `ServerScriptService.Server` | `Main`, `MapBuilder`, `Props`, `ModelFactory`, `Gate`, `RateLimiter`, `Reach`, `DataSchema`, `Services/*` |
+| `src/client` | `StarterPlayerScripts.Client` | `Main`, `Hud`, `RollPanel`, `Panels`, `Hatch`, `World`, `Store`, `Ui` |
 | `tests` | not synced | Lune unit tests |
 
-Eggs, pets, mutations, prices, hatch times and odds live in `src/shared/Config/Pets.luau`. Money, luck, offline earnings and slot counts live in `src/shared/Config/Economy.luau`.
+All content lives in `src/shared/Config/Pets.luau`: biomes, rarities, pets, and the numbers that build every egg (prices, hatch times, odds). Upgrades, offline earnings and cooldowns live in `src/shared/Config/Economy.luau`.
 
 ## Building a real map
 
-Each plot is a Model under `workspace.Plots` with `PrimaryPart` set to `Base` and these children:
+`MapBuilder` builds placeholder low-poly lanes from parts. To use your own build, make `workspace.Lanes` with one Model per lane (`PrimaryPart` = `Base`) containing:
 
 | Child | Type | Purpose |
 | --- | --- | --- |
-| `Base` | BasePart | The plot's floor |
-| `Spawn` | BasePart | Where the owner's character is moved |
-| `LuckBoard` | BasePart | Holds the Upgrade Luck prompt and the luck sign |
-| `Spinner` | BasePart | Holds the Spin prompt and the egg odds sign; the spun egg appears on top |
-| `Incubators/Incubator1`..`Incubator4` | BasePart | Where bought eggs sit while they count down |
-| `Pedestals/Pedestal1`..`Pedestal8` | BasePart | Where hatched pets stand |
-| `Buttons/Button1`..`Button8` | BasePart | The green collect button for the pedestal with the same number |
+| `Base`, `Spawn` | BasePart | The base floor, and where the owner appears |
+| `Collector` | BasePart | Step on it to collect income |
+| `UpgradeStation` | BasePart | Opens the Upgrades window |
+| `Platforms/Platform1`..`Platform12` | BasePart | Where equipped pets stand |
+| `HatchSlots/Slot1`..`Slot8` | BasePart | Where placed eggs sit while hatching |
+| `Decor/<biome id>` | BasePart | Where the base decoration for each unlocked biome appears |
+| `Biomes/<biome id>/Station` | BasePart | The roll station; standing near it opens the panel |
+| `Biomes/<biome id>/Arrival` | BasePart | Where Teleport puts you |
+| `Biomes/<biome id>/Gate` | BasePart | The unlock gate (every biome after Farm) |
 
-The server checks all of this at boot and errors with the missing name. Pet and egg models are built in code by `ModelFactory`; replace `ModelFactory.BuildPet` and `ModelFactory.BuildEgg` to use real models.
+The server checks all of this at boot and errors with the missing name. Pets and eggs are built in code by `ModelFactory`; replace `BuildPet` and `BuildEgg` to use real models.
 
 ## Security model
 
-- **Rolls** (spun egg, pet and mutation) happen on the server with `Random.new()` when an egg hatches, so no client can force a rare egg or pet. Spins have a server-side cooldown, and only the egg the server spun can be bought. Luck comes from saved data, not the client. The hatch animation only plays the result the server already decided.
-- **Every action is a server-side `ProximityPrompt`** (spin, buy, hatch, sell, upgrade luck). Each handler checks the prompt rate limit, that the player owns the base, and that they are within reach. Prices come from server config.
-- **Hatch timers** are stored as server unix time. The client only draws the countdown; hatching early is refused.
-- **Income** is added on the server once a second from saved pedestals, and offline earnings come from a server timestamp saved with the profile; collecting needs the owner's own character to touch that pedestal's button.
-- **Remotes and prompts** are rate limited per player through `Gate`, which also checks remote argument types and count and kicks after 20 failures in 60 seconds. There is no client-to-server remote; the only remote is the server's `Notify`.
-- **Cleanup**: everything tied to a plot (prompts, connections, models, signs) is added to that plot's `Janitor` and torn down in one call when the player leaves.
-- **Saving** uses ProfileStore session locks, so data cannot be duplicated across servers. Loaded data is sanitized: whole numbers in range, only known pets, eggs and mutations in valid slots.
+- **Rolls** (egg offers, pets and mutations) happen on the server with `Random.new()`. Luck comes from saved upgrades. The client's roll and hatch animations only show results the server already decided.
+- **Buying** only works for the exact egg the server offered at that station, near the station, in a biome the player has unlocked, with a server roll cooldown. Prices come from server config.
+- **Every remote** (`Roll`, `Buy`, `PlaceEgg`, `Equip`, `Unequip`, `EquipBest`, `Sell`, `Upgrade`, `Teleport`) goes through `Gate`: per-player rate limits, strict argument checks (known ids only), and a kick after 20 bad requests in 60 seconds. Every world action (open egg, unlock gate) is a server-side `ProximityPrompt` with owner and reach checks.
+- **Gates** stay solid on the server; only the owner's client makes their unlocked gates passable, and stations refuse locked biomes anyway.
+- **Hatch timers** and **offline earnings** use server unix time saved in the profile.
+- **Cleanup**: everything tied to a lane is added to its `Janitor` and torn down in one call when the player leaves.
+- **Saving** uses ProfileStore session locks, so data cannot be duplicated across servers. Loaded data is sanitized: whole numbers in range, only known pets, eggs, mutations and upgrades, capped inventories. Saves from earlier prototypes start over.

@@ -69,18 +69,15 @@ return {
 		T.equal(Rolls.OneIn(0), "never")
 	end,
 	["shipped eggs only contain known pets with sane numbers"] = function()
-		local rarities = {}
-		for _, rarity in PetConfig.Rarities do
-			rarities[rarity.name] = true
-		end
 		local seen = {}
 		for _, egg in PetConfig.Eggs do
 			T.falsy(seen[egg.id], `duplicate egg {egg.id}`)
 			seen[egg.id] = true
-			T.truthy(egg.price > 0 and egg.price % 1 == 0, `{egg.id} price`)
+			T.truthy(egg.price > 0 and egg.price % 1 == 0 and egg.price < 2 ^ 53, `{egg.id} price`)
 			T.truthy(egg.hatchTime > 0, `{egg.id} hatchTime`)
-			T.truthy(egg.spinWeight > 0, `{egg.id} spinWeight`)
-			T.truthy(rarities[egg.rarity], `{egg.id} has unknown rarity {egg.rarity}`)
+			T.truthy(egg.offerWeight > 0, `{egg.id} offerWeight`)
+			T.truthy(PetConfig.RarityIndex[egg.rarity], `{egg.id} rarity`)
+			T.truthy(PetConfig.BiomesById[egg.biome], `{egg.id} biome`)
 			T.truthy(#egg.pets > 0, `{egg.id} has no pets`)
 			for _, entry in egg.pets do
 				T.truthy(PetConfig.Pets[entry.id], `{egg.id} lists unknown pet {entry.id}`)
@@ -88,8 +85,47 @@ return {
 			end
 		end
 		for id, pet in PetConfig.Pets do
-			T.truthy(rarities[pet.rarity], `{id} has unknown rarity {pet.rarity}`)
-			T.truthy(pet.income > 0 and pet.income % 1 == 0, `{id} income`)
+			T.truthy(PetConfig.RarityIndex[pet.rarity], `{id} has unknown rarity {pet.rarity}`)
+			T.truthy(pet.income >= 1 and pet.income % 1 == 0 and pet.income < 2 ^ 53, `{id} income`)
+		end
+	end,
+	["eleven biomes in order, each with three eggs and rising prices"] = function()
+		local names = {}
+		for _, biome in PetConfig.Biomes do
+			table.insert(names, biome.name)
+			T.equal(#biome.eggIds, 3, `{biome.id} eggs`)
+		end
+		T.equal(
+			table.concat(names, ","),
+			"Farm,Forest,Desert,Snow,Jungle,Ocean,Volcano,Prehistoric,Kingdom,Skylands,Cosmic"
+		)
+		for index = 2, #PetConfig.Biomes do
+			local previous, current = PetConfig.Biomes[index - 1], PetConfig.Biomes[index]
+			T.truthy(current.unlockCost > previous.unlockCost, `{current.id} unlock cost`)
+			local a = PetConfig.EggsById[previous.eggIds[1]].price
+			local b = PetConfig.EggsById[current.eggIds[1]].price
+			T.truthy(b > a, `{current.id} egg price`)
+		end
+		T.equal(PetConfig.Biomes[1].unlockCost, 0)
+	end,
+	["ten rarities in order, Cosmic pets only in the last two biomes"] = function()
+		local names = {}
+		for _, rarity in PetConfig.Rarities do
+			table.insert(names, rarity.name)
+		end
+		T.equal(table.concat(names, ","), "Common,Uncommon,Rare,Epic,Legendary,Mythic,Exotic,Divine,Secret,Cosmic")
+		for _, pet in PetConfig.Pets do
+			if pet.rarity == "Cosmic" then
+				T.truthy(pet.biome == "Skylands" or pet.biome == "Cosmic", `{pet.id} biome`)
+			end
+		end
+	end,
+	["a Standard egg never contains its biome's best pet"] = function()
+		for _, biome in PetConfig.Biomes do
+			local standard = PetConfig.EggsById[biome.eggIds[1]]
+			for _, entry in standard.pets do
+				T.truthy(PetConfig.Pets[entry.id].rarity ~= biome.topRarity, `{standard.id} has {entry.id}`)
+			end
 		end
 	end,
 }

@@ -1,13 +1,14 @@
--- Server entry point. Order matters: the map is checked and every service is
--- ready before players are handled.
-
-local RunService = game:GetService("RunService")
+-- Server entry point. Order matters: the map is built and checked, and every
+-- remote is registered, before players are handled.
 
 local Services = script.Parent.Services
 
-if RunService:IsStudio() then
-	require(script.Parent.DevScaffold).BuildIfMissing()
-end
+require(script.Parent.MapBuilder).BuildIfMissing()
 
 require(Services.PlotService).Init()
-require(Services.TycoonService).Init()
+require(Services.PetService).Init()
+require(Services.HatchService).Init()
+require(Services.RollService).Init()
+require(Services.BiomeService).Init()
+require(Services.UpgradeService).Init()
+require(Services.PlayerService).Init()

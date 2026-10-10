@@ -19,6 +19,14 @@ return {
 		T.equal(Format.Short(1999), "1.99K")
 		T.equal(Format.Short(999999), "999.99K")
 	end,
+	["multiplier and duration text"] = function()
+		T.equal(Format.Multiplier(1.25), "x1.25")
+		T.equal(Format.Multiplier(1), "x1")
+		T.equal(Format.Duration(45), "45s")
+		T.equal(Format.Duration(125), "2:05")
+		T.equal(Format.Duration(4800), "1h 20m")
+		T.equal(Format.Duration(-3), "0s")
+	end,
 	["cash adds a dollar sign"] = function()
 		T.equal(Format.Cash(2500), "$2.5K")
 	end,

@@ -2,83 +2,110 @@ local DataSchema = require("../src/server/DataSchema")
 local T = require("./TestKit")
 
 local LIMITS = {
-	pets = { Puppy = {}, Unicorn = {} },
-	eggs = { Basic = {} },
+	pets = { Chick = {}, Cow = {} },
+	eggs = { FarmStandard = {}, FarmRoyal = {} },
 	mutations = { Golden = {} },
-	pedestals = 8,
-	incubators = 4,
-	maxLuckLevel = 20,
+	upgrades = { HatchSlots = 6, Luck = 20 },
+	biomes = 11,
 	maxCash = 2 ^ 53,
+	maxPets = 3,
+	maxEggs = 10,
+	hatchSlots = 8,
+	equipSlots = 2,
 }
 
 local function sanitize(data: any)
+	data.Version = data.Version or DataSchema.Version
 	DataSchema.Sanitize(data, LIMITS)
 	return data
 end
 
 return {
-	["clamps and floors numbers"] = function()
-		local data = sanitize({ Cash = -5, LuckLevel = 99.7 })
-		T.equal(data.Cash, 0)
-		T.equal(data.LuckLevel, 20)
+	["old prototype saves start over"] = function()
+		local data = { Version = 4, Cash = 999, Pedestals = { ["1"] = "Fox" } }
+		DataSchema.Sanitize(data, LIMITS)
 		T.equal(data.Version, DataSchema.Version)
+		T.equal(data.Cash, DataSchema.Template.Cash)
+		T.equal(data.Pedestals, nil)
+		T.equal(data.Unlocked, 1)
+		T.truthy(data.Pets ~= DataSchema.Template.Pets, "template tables are copied")
 	end,
-	["rejects NaN and caps cash"] = function()
-		local data = sanitize({ Cash = math.huge, LuckLevel = 0 / 0 })
-		T.equal(data.Cash, LIMITS.maxCash)
-		T.equal(data.LuckLevel, 0)
+	["clamps numbers"] = function()
+		local data = sanitize({ Cash = -5, Unlocked = 99.7, Collector = 0 / 0, LastSeen = "x" })
+		T.equal(data.Cash, 0)
+		T.equal(data.Unlocked, 11)
+		T.equal(data.Collector, 0)
+		T.equal(data.LastSeen, 0)
+		T.equal(sanitize({ Unlocked = 0 }).Unlocked, 1)
 	end,
-	["keeps only known pets on valid pedestals, and their cash"] = function()
+	["keeps known upgrades within their max level"] = function()
+		local data = sanitize({ Upgrades = { HatchSlots = 9, Luck = 2.5, Fake = 3, Zero = 0 } })
+		T.equal(data.Upgrades.HatchSlots, 6)
+		T.equal(data.Upgrades.Luck, 2)
+		T.equal(data.Upgrades.Fake, nil)
+	end,
+	["keeps known eggs and caps the total"] = function()
+		local data = sanitize({ Eggs = { FarmStandard = 8, FarmRoyal = 8, Fake = 2, Bad = -1 } })
+		local total = (data.Eggs.FarmStandard or 0) + (data.Eggs.FarmRoyal or 0)
+		T.equal(total, 10)
+		T.equal(data.Eggs.Fake, nil)
+	end,
+	["keeps valid pets, their mutations, and moves NextPetId past them"] = function()
 		local data = sanitize({
-			Pedestals = { ["1"] = "Puppy", ["2"] = "Removed", ["9"] = "Puppy", [3] = "Puppy", ["8"] = "Unicorn" },
-			PedestalCash = { ["1"] = 12.5, ["2"] = 50, ["8"] = -3 },
+			Pets = {
+				["1"] = { pet = "Chick", mutation = "Golden" },
+				["7"] = { pet = "Cow", mutation = "Fake" },
+				["x"] = { pet = "Chick" },
+				["2"] = { pet = "Removed" },
+				["3"] = "broken",
+			},
+			NextPetId = 2,
 		})
-		T.equal(data.Pedestals["1"], "Puppy")
-		T.equal(data.Pedestals["2"], nil)
-		T.equal(data.Pedestals["9"], nil)
-		T.equal(data.Pedestals[3], nil)
-		T.equal(data.Pedestals["8"], "Unicorn")
-		T.equal(data.PedestalCash["1"], 12)
-		T.equal(data.PedestalCash["2"], nil) -- no pet there any more
-		T.equal(data.PedestalCash["8"], nil)
+		T.equal(data.Pets["1"].mutation, "Golden")
+		T.equal(data.Pets["7"].pet, "Cow")
+		T.equal(data.Pets["7"].mutation, nil)
+		T.equal(data.Pets["x"], nil)
+		T.equal(data.Pets["2"], nil)
+		T.equal(data.Pets["3"], nil)
+		T.equal(data.NextPetId, 8)
 	end,
-	["keeps known mutations only on pedestals that have a pet"] = function()
+	["caps the pet inventory"] = function()
+		local pets = {}
+		for index = 1, 5 do
+			pets[tostring(index)] = { pet = "Chick" }
+		end
+		T.equal(DataSchema.Count(sanitize({ Pets = pets }).Pets), 3)
+	end,
+	["equipped only holds owned pets, up to the equip limit"] = function()
 		local data = sanitize({
-			Pedestals = { ["1"] = "Puppy", ["2"] = "Puppy" },
-			PedestalMutations = { ["1"] = "Golden", ["2"] = "Fake", ["3"] = "Golden" },
+			Pets = { ["1"] = { pet = "Chick" }, ["2"] = { pet = "Cow" }, ["3"] = { pet = "Cow" } },
+			Equipped = { ["1"] = true, ["2"] = true, ["3"] = true, ["9"] = true },
 		})
-		T.equal(data.PedestalMutations["1"], "Golden")
-		T.equal(data.PedestalMutations["2"], nil)
-		T.equal(data.PedestalMutations["3"], nil)
+		T.equal(DataSchema.Count(data.Equipped), 2)
+		T.equal(data.Equipped["9"], nil)
 	end,
-	["LastSeen defaults to 0 and stays whole"] = function()
-		T.equal(sanitize({}).LastSeen, 0)
-		T.equal(sanitize({ LastSeen = 1700000000.6 }).LastSeen, 1700000000)
-		T.equal(sanitize({ LastSeen = "x" }).LastSeen, 0)
-	end,
-	["keeps only valid incubations"] = function()
+	["keeps only valid hatching eggs"] = function()
 		local data = sanitize({
-			Incubators = {
-				["1"] = { egg = "Basic", readyAt = 1000.9 },
+			Hatching = {
+				["1"] = { egg = "FarmStandard", readyAt = 1000.9 },
 				["2"] = { egg = "Unknown", readyAt = 1 },
-				["3"] = { egg = "Basic", readyAt = "soon" },
-				["4"] = { egg = "Basic", readyAt = 0 / 0 },
-				["5"] = { egg = "Basic", readyAt = 1 },
+				["3"] = { egg = "FarmStandard", readyAt = "soon" },
+				["9"] = { egg = "FarmStandard", readyAt = 1 },
 			},
 		})
-		T.equal(data.Incubators["1"].readyAt, 1000)
-		T.equal(data.Incubators["2"], nil)
-		T.equal(data.Incubators["3"], nil)
-		T.equal(data.Incubators["4"], nil)
-		T.equal(data.Incubators["5"], nil)
+		T.equal(data.Hatching["1"].readyAt, 1000)
+		T.equal(data.Hatching["2"], nil)
+		T.equal(data.Hatching["3"], nil)
+		T.equal(data.Hatching["9"], nil)
 	end,
-	["replaces corrupt tables and drops retired fields"] = function()
-		local data = sanitize({ Pedestals = "broken", Incubators = 5, Slots = {}, StoredCash = 3, Purchased = {} })
-		T.equal(type(data.Pedestals), "table")
-		T.equal(type(data.Incubators), "table")
-		T.equal(data.Slots, nil)
-		T.equal(data.StoredCash, nil)
-		T.equal(data.Purchased, nil)
+	["replaces corrupt tables"] = function()
+		local data =
+			sanitize({ Pets = "broken", Eggs = 5, Hatching = true, Discovered = { Chick = true, Nope = true } })
+		T.equal(type(data.Pets), "table")
+		T.equal(type(data.Eggs), "table")
+		T.equal(type(data.Hatching), "table")
+		T.equal(data.Discovered.Chick, true)
+		T.equal(data.Discovered.Nope, nil)
 	end,
 	["FreeKey returns the lowest empty key, or nil when full"] = function()
 		T.equal(DataSchema.FreeKey({ ["1"] = "x", ["3"] = "x" }, 3), "2")

@@ -12,28 +12,33 @@ local ServerStorage = game:GetService("ServerStorage")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
 local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
+local PetInfo = require(ReplicatedStorage.Shared.PetInfo)
 local DataSchema = require(script.Parent.Parent.DataSchema)
 
 local STORE_NAME = "PlayerData"
-
-local eggsById = {}
-for _, egg in PetConfig.Eggs do
-	eggsById[egg.id] = egg
-end
 
 local mutationsById = {}
 for _, mutation in PetConfig.Mutations do
 	mutationsById[mutation.id] = mutation
 end
+local upgradeLevels = {}
+for _, definition in Economy.Upgrades do
+	upgradeLevels[definition.id] = definition.maxLevel
+end
+local equip = PetInfo.UpgradesById.EquipSlots
+local eggStorage = PetInfo.UpgradesById.EggStorage
 
 local LIMITS: DataSchema.Limits = {
 	pets = PetConfig.Pets,
-	eggs = eggsById,
+	eggs = PetConfig.EggsById,
 	mutations = mutationsById,
-	pedestals = Economy.PedestalCount,
-	incubators = Economy.IncubatorCount,
-	maxLuckLevel = Economy.MaxLuckLevel,
+	upgrades = upgradeLevels,
+	biomes = #PetConfig.Biomes,
 	maxCash = Economy.MaxCash,
+	maxPets = Economy.MaxPets,
+	maxEggs = eggStorage.start + eggStorage.perLevel * eggStorage.maxLevel,
+	hatchSlots = 8,
+	equipSlots = equip.start + equip.perLevel * equip.maxLevel,
 }
 
 local store = ProfileStore.New(STORE_NAME, DataSchema.Template)
