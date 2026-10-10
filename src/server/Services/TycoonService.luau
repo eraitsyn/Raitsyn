@@ -9,7 +9,10 @@ local Players = game:GetService("Players")
 
 local CurrencyService = require(script.Parent.CurrencyService)
 local DataService = require(script.Parent.DataService)
-local GodService = require(script.Parent.GodService)
+local EggShopService = require(script.Parent.EggShopService)
+local IncubatorService = require(script.Parent.IncubatorService)
+local LuckService = require(script.Parent.LuckService)
+local PetService = require(script.Parent.PetService)
 local PlotService = require(script.Parent.PlotService)
 
 local TycoonService = {}
@@ -33,7 +36,10 @@ local function onPlayerAdded(player: Player)
 	end
 
 	CurrencyService.Attach(player, data)
-	GodService.Setup(state)
+	PetService.Setup(state)
+	IncubatorService.Setup(state)
+	EggShopService.Setup(state)
+	LuckService.Setup(state)
 
 	state.janitor:Add(player.CharacterAdded:Connect(function(character)
 		-- Wait one frame so the default spawn location does not override the move.

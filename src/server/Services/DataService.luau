@@ -10,11 +10,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
-local Gods = require(ReplicatedStorage.Shared.Config.Gods)
+local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
 local DataSchema = require(script.Parent.Parent.DataSchema)
 
 local STORE_NAME = "PlayerData"
+
+local eggsById = {}
+for _, egg in PetConfig.Eggs do
+	eggsById[egg.id] = egg
+end
+
+local LIMITS: DataSchema.Limits = {
+	pets = PetConfig.Pets,
+	eggs = eggsById,
+	pedestals = Economy.PedestalCount,
+	incubators = Economy.IncubatorCount,
+	maxLuckLevel = Economy.MaxLuckLevel,
+	maxCash = Economy.MaxCash,
+}
 
 local store = ProfileStore.New(STORE_NAME, DataSchema.Template)
 local profiles: { [Player]: any } = {}
@@ -38,7 +52,7 @@ function DataService.Load(player: Player): DataSchema.PlayerData?
 
 	profile:AddUserId(player.UserId)
 	profile:Reconcile()
-	DataSchema.Sanitize(profile.Data, Gods.Gods, Economy.SlotsPerBase, Economy.MaxCash)
+	DataSchema.Sanitize(profile.Data, LIMITS)
 
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil

@@ -2,15 +2,16 @@
 	Remotes: the full list of RemoteEvents this game uses.
 
 	The server creates them at boot; clients wait for them. Server code should
-	register handlers through Server.Gate, never by connecting OnServerEvent directly.
+	register any client-to-server remote through Server.Gate, never by connecting
+	OnServerEvent directly. Every player action today is a ProximityPrompt, so
+	the only remote is Notify, from server to client.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local NAMES = {
-	"RequestLock", -- client -> server: ()
-	"Notify", -- server -> client: ({ kind: string, id: string? })
+	"Notify", -- server -> client: ({ kind: string, id: string?, by: string? })
 }
 
 local Remotes = {}

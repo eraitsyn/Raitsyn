@@ -1,28 +1,47 @@
 --[[
 	DataSchema: the saved player data shape and its load-time cleanup.
 
-	Slots maps a slot number as a string ("1".."8") to a god id. String keys keep
-	the table a dictionary, which DataStores save reliably even with gaps.
+	Pedestals, PedestalCash and Incubators are keyed by slot number as a string
+	("1".."8"). String keys keep each table a dictionary, which DataStores save
+	reliably even with gaps.
 	No Roblox dependencies, so it is unit tested outside Studio.
 ]]
+
+export type Incubation = { egg: string, readyAt: number } -- readyAt is os.time() seconds
 
 export type PlayerData = {
 	Version: number,
 	Cash: number,
-	StoredCash: number,
-	Slots: { [string]: string },
+	LuckLevel: number,
+	Pedestals: { [string]: string }, -- pedestal key -> pet id
+	PedestalCash: { [string]: number }, -- pedestal key -> uncollected cash
+	Incubators: { [string]: Incubation }, -- incubator key -> egg waiting to hatch
+}
+
+export type Limits = {
+	pets: { [string]: any },
+	eggs: { [string]: any },
+	pedestals: number,
+	incubators: number,
+	maxLuckLevel: number,
+	maxCash: number,
 }
 
 local DataSchema = {}
 
-DataSchema.Version = 2
+DataSchema.Version = 3
 
 DataSchema.Template = {
-	Version = 2,
-	Cash = 50,
-	StoredCash = 0,
-	Slots = {},
+	Version = 3,
+	Cash = 100,
+	LuckLevel = 0,
+	Pedestals = {},
+	PedestalCash = {},
+	Incubators = {},
 } :: PlayerData
+
+-- Fields from earlier prototypes (dropper tycoon, gods tycoon).
+local RETIRED_FIELDS = { "Purchased", "Rebirths", "Slots", "StoredCash" }
 
 local function wholeNumber(value: any, max: number): number
 	if type(value) ~= "number" or value ~= value then
@@ -31,35 +50,57 @@ local function wholeNumber(value: any, max: number): number
 	return math.clamp(math.floor(value), 0, max)
 end
 
--- Fixes a loaded profile in place: whole, in-range numbers, only known gods in
--- valid slots, and no fields left over from older versions.
-function DataSchema.Sanitize(data: any, knownGods: { [string]: any }, slotCount: number, maxCash: number)
+-- Fixes a loaded profile in place: whole, in-range numbers, only known pets and
+-- eggs in valid slots, and no fields left over from older versions.
+function DataSchema.Sanitize(data: any, limits: Limits)
 	data.Version = DataSchema.Version
-	data.Cash = wholeNumber(data.Cash, maxCash)
-	data.StoredCash = wholeNumber(data.StoredCash, maxCash)
+	data.Cash = wholeNumber(data.Cash, limits.maxCash)
+	data.LuckLevel = wholeNumber(data.LuckLevel, limits.maxLuckLevel)
 
-	local slots = {}
-	if type(data.Slots) == "table" then
-		for index = 1, slotCount do
-			local key = tostring(index)
-			local godId = data.Slots[key]
-			if type(godId) == "string" and knownGods[godId] ~= nil then
-				slots[key] = godId
+	local oldPedestals = if type(data.Pedestals) == "table" then data.Pedestals else {}
+	local oldCash = if type(data.PedestalCash) == "table" then data.PedestalCash else {}
+	local pedestals, pedestalCash = {}, {}
+	for index = 1, limits.pedestals do
+		local key = tostring(index)
+		local petId = oldPedestals[key]
+		if type(petId) == "string" and limits.pets[petId] ~= nil then
+			pedestals[key] = petId
+			local cash = wholeNumber(oldCash[key], limits.maxCash)
+			if cash > 0 then
+				pedestalCash[key] = cash
 			end
 		end
 	end
-	data.Slots = slots
+	data.Pedestals = pedestals
+	data.PedestalCash = pedestalCash
 
-	-- Version 1 fields (dropper tycoon).
-	data.Purchased = nil
-	data.Rebirths = nil
+	local oldIncubators = if type(data.Incubators) == "table" then data.Incubators else {}
+	local incubators = {}
+	for index = 1, limits.incubators do
+		local key = tostring(index)
+		local incubation = oldIncubators[key]
+		if
+			type(incubation) == "table"
+			and type(incubation.egg) == "string"
+			and limits.eggs[incubation.egg] ~= nil
+			and type(incubation.readyAt) == "number"
+			and incubation.readyAt == incubation.readyAt
+		then
+			incubators[key] = { egg = incubation.egg, readyAt = math.floor(incubation.readyAt) }
+		end
+	end
+	data.Incubators = incubators
+
+	for _, field in RETIRED_FIELDS do
+		data[field] = nil
+	end
 end
 
--- The lowest empty slot key, or nil when the base is full.
-function DataSchema.FreeSlot(data: PlayerData, slotCount: number): string?
-	for index = 1, slotCount do
+-- The lowest empty key in a slot table, or nil when every slot is used.
+function DataSchema.FreeKey(slots: { [string]: any }, count: number): string?
+	for index = 1, count do
 		local key = tostring(index)
-		if data.Slots[key] == nil then
+		if slots[key] == nil then
 			return key
 		end
 	end

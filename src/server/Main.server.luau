@@ -10,6 +10,4 @@ if RunService:IsStudio() then
 end
 
 require(Services.PlotService).Init()
-require(Services.StealService).Init()
-require(Services.LaneService).Init()
 require(Services.TycoonService).Init()

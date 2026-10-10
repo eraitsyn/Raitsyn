@@ -1,11 +1,6 @@
 local Rolls = require("../src/shared/Rolls")
+local PetConfig = require("../src/shared/Config/Pets")
 local T = require("./TestKit")
-
-local RARITIES = {
-	{ name = "Common", weight = 75 },
-	{ name = "Rare", weight = 25 },
-	{ name = "Secret", weight = 0 },
-}
 
 local function sequence(values: { number })
 	local index = 0
@@ -15,47 +10,66 @@ local function sequence(values: { number })
 	end
 end
 
+local ENTRIES = { { id = "Common", weight = 75 }, { id = "Rare", weight = 25 } }
+local RARITY = { Common = "Common", Rare = "Rare" }
+local function rarityOf(id)
+	return RARITY[id]
+end
+
+local function chanceOf(chances, id)
+	for _, chance in chances do
+		if chance.id == id then
+			return chance.chance
+		end
+	end
+	return 0
+end
+
 return {
-	["PickRarity follows the weights"] = function()
-		T.equal(Rolls.PickRarity(RARITIES, sequence({ 0 })), "Common")
-		T.equal(Rolls.PickRarity(RARITIES, sequence({ 0.749 })), "Common")
-		T.equal(Rolls.PickRarity(RARITIES, sequence({ 0.75 })), "Rare")
-		T.equal(Rolls.PickRarity(RARITIES, sequence({ 0.999999 })), "Rare")
+	["Pick follows the weights"] = function()
+		T.equal(Rolls.Pick(ENTRIES, sequence({ 0 })), "Common")
+		T.equal(Rolls.Pick(ENTRIES, sequence({ 0.749 })), "Common")
+		T.equal(Rolls.Pick(ENTRIES, sequence({ 0.75 })), "Rare")
+		T.equal(Rolls.Pick(ENTRIES, sequence({ 0.999999 })), "Rare")
 	end,
-	["PickRarity never returns a zero-weight rarity inside the range"] = function()
-		for step = 0, 99 do
-			T.truthy(Rolls.PickRarity(RARITIES, sequence({ step / 100 })) ~= "Secret")
+	["WithLuck boosts only lucky rarities and leaves the config alone"] = function()
+		local boosted = Rolls.WithLuck(ENTRIES, rarityOf, { Rare = true }, 3)
+		T.equal(boosted[1].weight, 75)
+		T.equal(boosted[2].weight, 75)
+		T.equal(ENTRIES[2].weight, 25)
+		local chances = Rolls.Chances(boosted)
+		T.equal(chanceOf(chances, "Rare"), 0.5)
+	end,
+	["luck 1 changes nothing"] = function()
+		local chances = Rolls.Chances(Rolls.WithLuck(ENTRIES, rarityOf, { Rare = true }, 1))
+		T.equal(chanceOf(chances, "Common"), 0.75)
+	end,
+	["OneIn formats odds"] = function()
+		T.equal(Rolls.OneIn(0.5), "1 in 2")
+		T.equal(Rolls.OneIn(0.4), "1 in 2.5")
+		T.equal(Rolls.OneIn(0.001), "1 in 1000")
+		T.equal(Rolls.OneIn(0), "never")
+	end,
+	["shipped eggs only contain known pets with sane numbers"] = function()
+		local seen = {}
+		for _, egg in PetConfig.Eggs do
+			T.falsy(seen[egg.id], `duplicate egg {egg.id}`)
+			seen[egg.id] = true
+			T.truthy(egg.price > 0 and egg.price % 1 == 0, `{egg.id} price`)
+			T.truthy(egg.hatchTime > 0, `{egg.id} hatchTime`)
+			T.truthy(#egg.pets > 0, `{egg.id} has no pets`)
+			for _, entry in egg.pets do
+				T.truthy(PetConfig.Pets[entry.id], `{egg.id} lists unknown pet {entry.id}`)
+				T.truthy(entry.weight > 0, `{egg.id}.{entry.id} weight`)
+			end
 		end
-	end,
-	["GroupByRarity sorts ids"] = function()
-		local groups = Rolls.GroupByRarity({
-			Zed = { rarity = "Common" },
-			Abe = { rarity = "Common" },
-			Mid = { rarity = "Rare" },
-		})
-		T.equal(groups.Common[1], "Abe")
-		T.equal(groups.Common[2], "Zed")
-		T.equal(groups.Rare[1], "Mid")
-	end,
-	["RollGod skips rarities with no gods"] = function()
-		local groups = { Rare = { "OnlyRare" } }
-		T.equal(Rolls.RollGod(RARITIES, groups, sequence({ 0, 0 })), "OnlyRare")
-	end,
-	["RollGod picks within the rolled rarity, including the last id"] = function()
-		local groups = { Common = { "A", "B" }, Rare = { "C" } }
-		T.equal(Rolls.RollGod(RARITIES, groups, sequence({ 0.1, 0 })), "A")
-		T.equal(Rolls.RollGod(RARITIES, groups, sequence({ 0.1, 0.99 })), "B")
-		T.equal(Rolls.RollGod(RARITIES, groups, sequence({ 0.9, 0.5 })), "C")
-	end,
-	["shipped roster has every rarity filled and sensible numbers"] = function()
-		local config = require("../src/shared/Config/Gods")
-		local groups = Rolls.GroupByRarity(config.Gods)
-		for _, rarity in config.Rarities do
-			T.truthy(groups[rarity.name] and #groups[rarity.name] > 0, `no gods for {rarity.name}`)
+		local rarities = {}
+		for _, rarity in PetConfig.Rarities do
+			rarities[rarity.name] = true
 		end
-		for id, god in config.Gods do
-			T.truthy(god.price > 0 and god.price % 1 == 0, `{id} price`)
-			T.truthy(god.income > 0 and god.income % 1 == 0, `{id} income`)
+		for id, pet in PetConfig.Pets do
+			T.truthy(rarities[pet.rarity], `{id} has unknown rarity {pet.rarity}`)
+			T.truthy(pet.income > 0 and pet.income % 1 == 0, `{id} income`)
 		end
 	end,
 }

@@ -86,6 +86,11 @@ function Gate.Notify(player: Player, kind: string, id: string?)
 	Remotes.Get("Notify"):FireClient(player, { kind = kind, id = id })
 end
 
+-- Tells every player, for example about a rare hatch. `by` is the player it is about.
+function Gate.NotifyAll(kind: string, id: string?, by: Player)
+	Remotes.Get("Notify"):FireAllClients({ kind = kind, id = id, by = by.DisplayName })
+end
+
 Players.PlayerRemoving:Connect(function(player)
 	strikes[player] = nil
 	for _, limiter in limiters do

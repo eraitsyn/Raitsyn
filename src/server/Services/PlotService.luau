@@ -2,28 +2,31 @@
 	PlotService: assigns plots and owns each player's server-side PlotState.
 
 	Expected plot layout (see README):
-	  workspace.Plots.<Plot>        Model, PrimaryPart = Base
-	    Base, Spawn, CollectPad     BaseParts
-	    Slots/Slot1..SlotN          one BasePart per base slot (N = Economy.SlotsPerBase)
+	  workspace.Plots.<Plot>              Model, PrimaryPart = Base
+	    Base, Spawn, LuckBoard            BaseParts
+	    Shop/<eggId>                      one BasePart stand per egg in Config/Pets
+	    Incubators/Incubator1..N          N = Economy.IncubatorCount
+	    Pedestals/Pedestal1..N            N = Economy.PedestalCount
+	    Buttons/Button1..N                the collect button for each pedestal
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
+local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
 local Janitor = require(ReplicatedStorage.Shared.Janitor)
 local DataSchema = require(script.Parent.Parent.DataSchema)
 
 export type PlotState = {
 	player: Player,
 	plot: Model,
-	data: DataSchema.PlayerData, -- the saved profile data; Slots and StoredCash live here
-	gods: { [string]: Model }, -- slot key -> placed god model
-	lockedUntil: number, -- os.clock() time; stealing is blocked before it
-	lockReadyAt: number, -- os.clock() time the lock can be used again
+	data: DataSchema.PlayerData, -- the saved profile data; the source of truth
+	pets: { [string]: Model }, -- pedestal key -> pet model (a picture of data.Pedestals)
+	eggs: { [string]: Model }, -- incubator key -> egg model (a picture of data.Incubators)
 	janitor: Janitor.Janitor, -- every connection, thread and instance tied to this plot
 }
 
-local REQUIRED_PARTS = { "Base", "Spawn", "CollectPad" }
+local REQUIRED_PARTS = { "Base", "Spawn", "LuckBoard" }
 
 local states: { [Player]: PlotState } = {}
 local freePlots: { Model } = {}
@@ -37,23 +40,29 @@ local function checkPlot(plot: Instance)
 		local part = plot:FindFirstChild(name)
 		assert(part and part:IsA("BasePart"), `{plot:GetFullName()} is missing part {name}`)
 	end
-	local slots = plot:FindFirstChild("Slots")
-	assert(slots, `{plot:GetFullName()} is missing folder Slots`)
-	for index = 1, Economy.SlotsPerBase do
-		local slot = slots:FindFirstChild(`Slot{index}`)
-		assert(slot and slot:IsA("BasePart"), `{plot:GetFullName()} is missing Slots.Slot{index}`)
+	local function requireNumbered(folderName: string, prefix: string, count: number)
+		local folder = plot:FindFirstChild(folderName)
+		assert(folder, `{plot:GetFullName()} is missing folder {folderName}`)
+		for index = 1, count do
+			local part = folder:FindFirstChild(`{prefix}{index}`)
+			assert(part and part:IsA("BasePart"), `{plot:GetFullName()} is missing {folderName}.{prefix}{index}`)
+		end
+	end
+	requireNumbered("Pedestals", "Pedestal", Economy.PedestalCount)
+	requireNumbered("Buttons", "Button", Economy.PedestalCount)
+	requireNumbered("Incubators", "Incubator", Economy.IncubatorCount)
+
+	local shop = plot:FindFirstChild("Shop")
+	assert(shop, `{plot:GetFullName()} is missing folder Shop`)
+	for _, egg in PetConfig.Eggs do
+		local stand = shop:FindFirstChild(egg.id)
+		assert(stand and stand:IsA("BasePart"), `{plot:GetFullName()} is missing Shop.{egg.id}`)
 	end
 end
 
-function PlotService.SlotPart(plot: Model, key: string): BasePart
-	return (plot:FindFirstChild("Slots") :: Folder):FindFirstChild(`Slot{key}`) :: BasePart
-end
-
--- True when the position is over the plot's Base, ignoring height.
-function PlotService.IsOnPlot(plot: Model, position: Vector3): boolean
-	local base = plot:FindFirstChild("Base") :: BasePart
-	local localPosition = base.CFrame:PointToObjectSpace(position)
-	return math.abs(localPosition.X) <= base.Size.X / 2 and math.abs(localPosition.Z) <= base.Size.Z / 2
+-- A numbered part, such as Part(plot, "Pedestals", "Pedestal", "3").
+function PlotService.Part(plot: Model, folderName: string, prefix: string, key: string): BasePart
+	return (plot:FindFirstChild(folderName) :: Folder):FindFirstChild(`{prefix}{key}`) :: BasePart
 end
 
 function PlotService.Init()
@@ -82,9 +91,8 @@ function PlotService.Claim(player: Player, data: DataSchema.PlayerData): PlotSta
 		player = player,
 		plot = plot,
 		data = data,
-		gods = {},
-		lockedUntil = 0,
-		lockReadyAt = 0,
+		pets = {},
+		eggs = {},
 		janitor = Janitor.new(),
 	}
 	states[player] = state
@@ -107,11 +115,10 @@ function PlotService.Release(player: Player)
 	end
 	states[player] = nil
 	state.janitor:Destroy()
-	table.clear(state.gods)
+	table.clear(state.pets)
+	table.clear(state.eggs)
 	state.plot:SetAttribute("OwnerUserId", 0)
 	state.plot:SetAttribute("OwnerName", nil)
-	state.plot:SetAttribute("StoredCash", 0)
-	state.plot:SetAttribute("LockedUntil", nil)
 	table.insert(freePlots, state.plot)
 end
 
