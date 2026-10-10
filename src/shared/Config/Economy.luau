@@ -12,6 +12,10 @@ return {
 	LuckCostGrowth = 2.5,
 	MaxLuckLevel = 20,
 
+	-- Spinning: seconds between spins, and how long the spin animation runs before the egg appears.
+	SpinCooldown = 2,
+	SpinRevealDelay = 1.6,
+
 	-- Offline earnings: while away, pets earn this share of their income, for at most this long.
 	OfflineRate = 0.5,
 	OfflineCapSeconds = 8 * 60 * 60,

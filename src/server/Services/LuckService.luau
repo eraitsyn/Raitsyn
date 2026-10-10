@@ -13,7 +13,7 @@ local Luck = require(ReplicatedStorage.Shared.Luck)
 local Gate = require(script.Parent.Parent.Gate)
 local ModelFactory = require(script.Parent.Parent.ModelFactory)
 local CurrencyService = require(script.Parent.CurrencyService)
-local EggShopService = require(script.Parent.EggShopService)
+local SpinService = require(script.Parent.SpinService)
 local PetService = require(script.Parent.PetService)
 
 type PlotState = any
@@ -56,7 +56,7 @@ local function tryUpgrade(player: Player, state: PlotState, prompt: ProximityPro
 	end
 	state.data.LuckLevel += 1
 	refreshBoard(state, prompt)
-	EggShopService.RefreshSigns(state)
+	SpinService.RefreshSigns(state)
 	Gate.Notify(player, "LuckUp", nil)
 end
 

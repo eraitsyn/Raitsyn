@@ -3,8 +3,7 @@
 
 	Expected plot layout (see README):
 	  workspace.Plots.<Plot>              Model, PrimaryPart = Base
-	    Base, Spawn, LuckBoard            BaseParts
-	    Shop/<eggId>                      one BasePart stand per egg in Config/Pets
+	    Base, Spawn, LuckBoard, Spinner   BaseParts
 	    Incubators/Incubator1..N          N = Economy.IncubatorCount
 	    Pedestals/Pedestal1..N            N = Economy.PedestalCount
 	    Buttons/Button1..N                the collect button for each pedestal
@@ -13,7 +12,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
-local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
 local Janitor = require(ReplicatedStorage.Shared.Janitor)
 local DataSchema = require(script.Parent.Parent.DataSchema)
 
@@ -24,9 +22,13 @@ export type PlotState = {
 	pets: { [string]: Model }, -- pedestal key -> pet model (a picture of data.Pedestals)
 	eggs: { [string]: Model }, -- incubator key -> egg model (a picture of data.Incubators)
 	janitor: Janitor.Janitor, -- every connection, thread and instance tied to this plot
+	offer: string?, -- egg id the last spin landed on, until bought or spun again
+	offerModel: Model?, -- the egg on the spinner, once the spin animation has finished
+	lastSpin: number, -- os.clock() of the last spin, for the cooldown
+	spinSerial: number, -- bumped on every spin so a stale reveal does nothing
 }
 
-local REQUIRED_PARTS = { "Base", "Spawn", "LuckBoard" }
+local REQUIRED_PARTS = { "Base", "Spawn", "LuckBoard", "Spinner" }
 
 local states: { [Player]: PlotState } = {}
 local freePlots: { Model } = {}
@@ -51,13 +53,6 @@ local function checkPlot(plot: Instance)
 	requireNumbered("Pedestals", "Pedestal", Economy.PedestalCount)
 	requireNumbered("Buttons", "Button", Economy.PedestalCount)
 	requireNumbered("Incubators", "Incubator", Economy.IncubatorCount)
-
-	local shop = plot:FindFirstChild("Shop")
-	assert(shop, `{plot:GetFullName()} is missing folder Shop`)
-	for _, egg in PetConfig.Eggs do
-		local stand = shop:FindFirstChild(egg.id)
-		assert(stand and stand:IsA("BasePart"), `{plot:GetFullName()} is missing Shop.{egg.id}`)
-	end
 end
 
 -- A numbered part, such as Part(plot, "Pedestals", "Pedestal", "3").
@@ -94,6 +89,10 @@ function PlotService.Claim(player: Player, data: DataSchema.PlayerData): PlotSta
 		pets = {},
 		eggs = {},
 		janitor = Janitor.new(),
+		offer = nil,
+		offerModel = nil,
+		lastSpin = 0,
+		spinSerial = 0,
 	}
 	states[player] = state
 	return state

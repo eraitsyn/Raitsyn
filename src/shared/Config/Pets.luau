@@ -1,6 +1,9 @@
 --[[
 	Pets, eggs and rarity odds.
 
+	Spinning picks one egg by spinWeight (luck boosts eggs whose rarity is in
+	LuckyRarities); the player can then buy that egg or spin again.
+
 	Each egg lists the pets it can hatch with a weight. A pet's chance is its
 	weight divided by the egg's total weight; luck multiplies the weight of
 	every pet whose rarity is in LuckyRarities (see Rolls.EggChances).
@@ -47,35 +50,37 @@ return {
 		Panda = { name = "Panda", rarity = "Epic", income = 40, color = { 30, 30, 30 } },
 		Unicorn = { name = "Unicorn", rarity = "Legendary", income = 120, color = { 250, 200, 240 } },
 
-		Lion = { name = "Lion", rarity = "Uncommon", income = 60, color = { 220, 170, 70 } },
-		Tiger = { name = "Tiger", rarity = "Rare", income = 120, color = { 240, 140, 30 } },
-		Wolf = { name = "Wolf", rarity = "Rare", income = 150, color = { 130, 130, 145 } },
-		Phoenix = { name = "Phoenix", rarity = "Epic", income = 400, color = { 255, 90, 30 } },
-		Griffin = { name = "Griffin", rarity = "Legendary", income = 1200, color = { 180, 140, 80 } },
-		Pegasus = { name = "Pegasus", rarity = "Mythical", income = 4000, color = { 200, 230, 255 } },
+		Lion = { name = "Lion", rarity = "Uncommon", income = 12, color = { 220, 170, 70 } },
+		Tiger = { name = "Tiger", rarity = "Rare", income = 24, color = { 240, 140, 30 } },
+		Wolf = { name = "Wolf", rarity = "Rare", income = 30, color = { 130, 130, 145 } },
+		Phoenix = { name = "Phoenix", rarity = "Epic", income = 80, color = { 255, 90, 30 } },
+		Griffin = { name = "Griffin", rarity = "Legendary", income = 240, color = { 180, 140, 80 } },
+		Pegasus = { name = "Pegasus", rarity = "Mythical", income = 800, color = { 200, 230, 255 } },
 
-		StarCat = { name = "Star Cat", rarity = "Epic", income = 3000, color = { 255, 230, 120 } },
-		CometFox = { name = "Comet Fox", rarity = "Legendary", income = 8000, color = { 120, 200, 255 } },
-		NebulaDragon = { name = "Nebula Dragon", rarity = "Mythical", income = 25000, color = { 160, 80, 220 } },
-		GalaxyWhale = { name = "Galaxy Whale", rarity = "Secret", income = 100000, color = { 40, 30, 90 } },
+		StarCat = { name = "Star Cat", rarity = "Epic", income = 150, color = { 255, 230, 120 } },
+		CometFox = { name = "Comet Fox", rarity = "Legendary", income = 400, color = { 120, 200, 255 } },
+		NebulaDragon = { name = "Nebula Dragon", rarity = "Mythical", income = 1250, color = { 160, 80, 220 } },
+		GalaxyWhale = { name = "Galaxy Whale", rarity = "Secret", income = 5000, color = { 40, 30, 90 } },
 
-		Salamander = { name = "Salamander", rarity = "Rare", income = 40000, color = { 255, 110, 50 } },
-		LavaHound = { name = "Lava Hound", rarity = "Epic", income = 90000, color = { 200, 50, 20 } },
-		MagmaGolem = { name = "Magma Golem", rarity = "Legendary", income = 250000, color = { 90, 40, 30 } },
-		FireDragon = { name = "Fire Dragon", rarity = "Mythical", income = 900000, color = { 255, 70, 0 } },
-		InfernoKing = { name = "Inferno King", rarity = "Secret", income = 4000000, color = { 255, 30, 30 } },
+		Salamander = { name = "Salamander", rarity = "Rare", income = 800, color = { 255, 110, 50 } },
+		LavaHound = { name = "Lava Hound", rarity = "Epic", income = 1800, color = { 200, 50, 20 } },
+		MagmaGolem = { name = "Magma Golem", rarity = "Legendary", income = 5000, color = { 90, 40, 30 } },
+		FireDragon = { name = "Fire Dragon", rarity = "Mythical", income = 18000, color = { 255, 70, 0 } },
+		InfernoKing = { name = "Inferno King", rarity = "Secret", income = 80000, color = { 255, 30, 30 } },
 
-		ShadowCat = { name = "Shadow Cat", rarity = "Epic", income = 1500000, color = { 50, 40, 70 } },
-		VoidBat = { name = "Void Bat", rarity = "Legendary", income = 4000000, color = { 90, 30, 140 } },
-		AbyssSerpent = { name = "Abyss Serpent", rarity = "Mythical", income = 15000000, color = { 20, 60, 90 } },
-		EclipseDragon = { name = "Eclipse Dragon", rarity = "Secret", income = 80000000, color = { 10, 10, 20 } },
+		ShadowCat = { name = "Shadow Cat", rarity = "Epic", income = 7500, color = { 50, 40, 70 } },
+		VoidBat = { name = "Void Bat", rarity = "Legendary", income = 20000, color = { 90, 30, 140 } },
+		AbyssSerpent = { name = "Abyss Serpent", rarity = "Mythical", income = 75000, color = { 20, 60, 90 } },
+		EclipseDragon = { name = "Eclipse Dragon", rarity = "Secret", income = 400000, color = { 10, 10, 20 } },
 	},
 
-	-- Shop order is the order of this list.
+	-- Spin odds come from spinWeight; the order is the order shown on the spinner sign.
 	Eggs = {
 		{
 			id = "Basic",
 			name = "Basic Egg",
+			rarity = "Common",
+			spinWeight = 55,
 			price = 50,
 			hatchTime = 10,
 			color = { 240, 235, 220 },
@@ -91,8 +96,10 @@ return {
 		{
 			id = "Golden",
 			name = "Golden Egg",
-			price = 2500,
-			hatchTime = 60,
+			rarity = "Uncommon",
+			spinWeight = 28,
+			price = 500,
+			hatchTime = 30,
 			color = { 255, 200, 50 },
 			pets = {
 				{ id = "Lion", weight = 45 },
@@ -106,8 +113,10 @@ return {
 		{
 			id = "Cosmic",
 			name = "Cosmic Egg",
-			price = 100000,
-			hatchTime = 300,
+			rarity = "Rare",
+			spinWeight = 12,
+			price = 5000,
+			hatchTime = 60,
 			color = { 90, 60, 200 },
 			pets = {
 				{ id = "StarCat", weight = 70 },
@@ -119,8 +128,10 @@ return {
 		{
 			id = "Volcano",
 			name = "Volcano Egg",
-			price = 2500000,
-			hatchTime = 600,
+			rarity = "Epic",
+			spinWeight = 4.5,
+			price = 50000,
+			hatchTime = 120,
 			color = { 230, 70, 20 },
 			pets = {
 				{ id = "Salamander", weight = 60 },
@@ -133,8 +144,10 @@ return {
 		{
 			id = "Void",
 			name = "Void Egg",
-			price = 100000000,
-			hatchTime = 1800,
+			rarity = "Legendary",
+			spinWeight = 0.5,
+			price = 500000,
+			hatchTime = 300,
 			color = { 40, 10, 60 },
 			pets = {
 				{ id = "ShadowCat", weight = 65 },

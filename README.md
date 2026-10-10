@@ -1,12 +1,13 @@
 # Raitsyn
 
-A server-authoritative Egg RNG tycoon in Luau. Every player gets their own base with an egg shop, four incubators, eight pet pedestals and a luck board. Buy an egg, wait for it to hatch, and the pet it rolls goes onto a pedestal where it earns cash every second. Step on a pedestal's green button to collect.
+A server-authoritative Egg RNG tycoon in Luau. Every player gets their own base with an egg spinner, four incubators, eight pet pedestals and a luck board. Spin for a random egg, buy it if you like it (or spin again), wait for it to hatch, and the pet it rolls goes onto a pedestal where it earns cash every second. Step on a pedestal's green button to collect.
 
 The server owns every number and every roll. Clients only trigger prompts; the server decides what happens.
 
 ## How it plays
 
-1. **Buy an egg** at one of the five shop stands in your base (Basic, Golden, Cosmic, Volcano, Void). The sign above each stand lists every pet it can hatch as "1 in N", already adjusted for your luck.
+1. **Spin** the egg spinner in your base. It lands on a random egg, and rarer eggs come up less often: Basic (Common), Golden (Uncommon), Cosmic (Rare), Volcano (Epic), Void (Legendary). The sign above the spinner shows each egg's chance, adjusted for your luck.
+   **Buy it or spin again.** The egg you landed on sits on the spinner with its price and a sign listing every pet it can hatch as "1 in N". Press F to buy it if you have the cash, or spin again for a different egg.
 2. **Incubate.** The egg goes into a free incubator and counts down. The timer keeps running while you are offline.
 3. **Hatch** it when the timer hits zero. The egg wobbles and cracks open on screen, and the server rolls the pet and places it on a free pedestal. Mythical, Secret and Rainbow hatches are announced to the whole server.
 4. **Mutations** are rolled on every hatch: Golden (1 in 20, x2 income), Diamond (1 in 100, x5) and Rainbow (1 in 500, x10). Mutated pets look different and sell for more.
@@ -51,7 +52,7 @@ Each plot is a Model under `workspace.Plots` with `PrimaryPart` set to `Base` an
 | `Base` | BasePart | The plot's floor |
 | `Spawn` | BasePart | Where the owner's character is moved |
 | `LuckBoard` | BasePart | Holds the Upgrade Luck prompt and the luck sign |
-| `Shop/<egg id>` (Basic, Golden, Cosmic, Volcano, Void) | BasePart | One stand per egg; holds the Buy prompt and the odds sign |
+| `Spinner` | BasePart | Holds the Spin prompt and the egg odds sign; the spun egg appears on top |
 | `Incubators/Incubator1`..`Incubator4` | BasePart | Where bought eggs sit while they count down |
 | `Pedestals/Pedestal1`..`Pedestal8` | BasePart | Where hatched pets stand |
 | `Buttons/Button1`..`Button8` | BasePart | The green collect button for the pedestal with the same number |
@@ -60,8 +61,8 @@ The server checks all of this at boot and errors with the missing name. Pet and 
 
 ## Security model
 
-- **Rolls** (pet and mutation) happen on the server with `Random.new()` when an egg hatches, so no client can force a rare pet. Luck comes from saved data, not the client. The hatch animation only plays the result the server already decided.
-- **Every action is a server-side `ProximityPrompt`** (buy, hatch, sell, upgrade luck). Each handler checks the prompt rate limit, that the player owns the base, and that they are within reach. Prices come from server config.
+- **Rolls** (spun egg, pet and mutation) happen on the server with `Random.new()` when an egg hatches, so no client can force a rare egg or pet. Spins have a server-side cooldown, and only the egg the server spun can be bought. Luck comes from saved data, not the client. The hatch animation only plays the result the server already decided.
+- **Every action is a server-side `ProximityPrompt`** (spin, buy, hatch, sell, upgrade luck). Each handler checks the prompt rate limit, that the player owns the base, and that they are within reach. Prices come from server config.
 - **Hatch timers** are stored as server unix time. The client only draws the countdown; hatching early is refused.
 - **Income** is added on the server once a second from saved pedestals, and offline earnings come from a server timestamp saved with the profile; collecting needs the owner's own character to touch that pedestal's button.
 - **Remotes and prompts** are rate limited per player through `Gate`, which also checks remote argument types and count and kicks after 20 failures in 60 seconds. There is no client-to-server remote; the only remote is the server's `Notify`.

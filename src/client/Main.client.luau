@@ -60,7 +60,7 @@ end
 local MESSAGES: { [string]: (message: any) -> string? } = {
 	BoughtEgg = function(message)
 		local egg = PetInfo.EggsById[stringField(message, "id") or ""]
-		return `{if egg then egg.name else "Egg"} is in your incubator!`
+		return `Bought {if egg then egg.name else "an egg"}! It is in your incubator.`
 	end,
 	NotReady = function()
 		return "This egg is not ready yet."
@@ -209,6 +209,70 @@ end
 player:GetAttributeChangedSignal("Luck"):Connect(updateLuck)
 updateLuck()
 
+-- Spin animation ------------------------------------------------------------
+
+local reel = Instance.new("Frame")
+reel.Name = "SpinReel"
+reel.AnchorPoint = Vector2.new(0.5, 1)
+reel.Position = UDim2.new(0.5, 0, 1, -120)
+reel.Size = UDim2.fromOffset(420, 90)
+reel.BackgroundColor3 = Color3.fromRGB(25, 20, 40)
+reel.BackgroundTransparency = 0.1
+reel.Visible = false
+reel.Parent = gui
+corner(reel, UDim.new(0, 14))
+stroke(reel, 4)
+local reelStroke = reel:FindFirstChildOfClass("UIStroke") :: UIStroke
+local reelEgg = label("Egg", reel)
+reelEgg.Size = UDim2.new(1, -20, 0.62, 0)
+reelEgg.Position = UDim2.fromOffset(10, 4)
+stroke(reelEgg, 2)
+local reelRarity = label("Rarity", reel)
+reelRarity.Size = UDim2.new(1, -20, 0.3, 0)
+reelRarity.Position = UDim2.new(0, 10, 0.64, 0)
+stroke(reelRarity, 2)
+
+local function showReelEgg(eggId: string)
+	local egg = PetInfo.EggsById[eggId]
+	local color = rarityColors[egg.rarity]
+	reelEgg.Text = egg.name
+	reelEgg.TextColor3 = rgb(egg.color)
+	reelRarity.Text = string.upper(egg.rarity)
+	reelRarity.TextColor3 = color
+	reelStroke.Color = color
+end
+
+local spinSerial = 0
+local function playSpin(eggId: string, reveal: number)
+	if PetInfo.EggsById[eggId] == nil then
+		return
+	end
+	spinSerial += 1
+	local serial = spinSerial
+	reel.Visible = true
+	-- Flick through random eggs, slowing down, and land on the server's pick when the egg appears.
+	local started = os.clock()
+	local gap = 0.04
+	while os.clock() - started + gap < reveal - 0.05 do
+		if spinSerial ~= serial then
+			return
+		end
+		showReelEgg(PetConfig.Eggs[math.random(1, #PetConfig.Eggs)].id)
+		task.wait(gap)
+		gap *= 1.18
+	end
+	if spinSerial ~= serial then
+		return
+	end
+	showReelEgg(eggId)
+	reel.Size = UDim2.fromOffset(470, 100)
+	TweenService:Create(reel, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(420, 90) }):Play()
+	task.wait(2.5)
+	if spinSerial == serial then
+		reel.Visible = false
+	end
+end
+
 -- Hatch animation ----------------------------------------------------------
 
 local overlay = Instance.new("Frame")
@@ -344,6 +408,13 @@ Remotes.Get("Notify").OnClientEvent:Connect(function(message)
 	end
 	if message.kind == "Hatched" then
 		queueHatch(message)
+		return
+	end
+	if message.kind == "Spun" then
+		local id = stringField(message, "id")
+		if id then
+			task.spawn(playSpin, id, math.clamp(numberField(message, "reveal") or 1.5, 0.3, 5))
+		end
 		return
 	end
 	if message.kind == "Collected" or message.kind == "Sold" then

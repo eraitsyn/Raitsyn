@@ -9,11 +9,11 @@ local Players = game:GetService("Players")
 
 local CurrencyService = require(script.Parent.CurrencyService)
 local DataService = require(script.Parent.DataService)
-local EggShopService = require(script.Parent.EggShopService)
 local IncubatorService = require(script.Parent.IncubatorService)
 local LuckService = require(script.Parent.LuckService)
 local PetService = require(script.Parent.PetService)
 local PlotService = require(script.Parent.PlotService)
+local SpinService = require(script.Parent.SpinService)
 
 local TycoonService = {}
 
@@ -38,7 +38,7 @@ local function onPlayerAdded(player: Player)
 	CurrencyService.Attach(player, data)
 	PetService.Setup(state)
 	IncubatorService.Setup(state)
-	EggShopService.Setup(state)
+	SpinService.Setup(state)
 	LuckService.Setup(state)
 
 	state.janitor:Add(player.CharacterAdded:Connect(function(character)

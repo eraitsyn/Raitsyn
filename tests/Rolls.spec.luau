@@ -69,21 +69,23 @@ return {
 		T.equal(Rolls.OneIn(0), "never")
 	end,
 	["shipped eggs only contain known pets with sane numbers"] = function()
+		local rarities = {}
+		for _, rarity in PetConfig.Rarities do
+			rarities[rarity.name] = true
+		end
 		local seen = {}
 		for _, egg in PetConfig.Eggs do
 			T.falsy(seen[egg.id], `duplicate egg {egg.id}`)
 			seen[egg.id] = true
 			T.truthy(egg.price > 0 and egg.price % 1 == 0, `{egg.id} price`)
 			T.truthy(egg.hatchTime > 0, `{egg.id} hatchTime`)
+			T.truthy(egg.spinWeight > 0, `{egg.id} spinWeight`)
+			T.truthy(rarities[egg.rarity], `{egg.id} has unknown rarity {egg.rarity}`)
 			T.truthy(#egg.pets > 0, `{egg.id} has no pets`)
 			for _, entry in egg.pets do
 				T.truthy(PetConfig.Pets[entry.id], `{egg.id} lists unknown pet {entry.id}`)
 				T.truthy(entry.weight > 0, `{egg.id}.{entry.id} weight`)
 			end
-		end
-		local rarities = {}
-		for _, rarity in PetConfig.Rarities do
-			rarities[rarity.name] = true
 		end
 		for id, pet in PetConfig.Pets do
 			T.truthy(rarities[pet.rarity], `{id} has unknown rarity {pet.rarity}`)
