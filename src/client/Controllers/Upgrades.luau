@@ -498,12 +498,14 @@ function Upgrades.start()
 		buyButton.setEnabled(ok and affordable)
 	end
 
+	local pulsing: { [string]: boolean } = {}
 	local function refreshTiles()
 		local p = progress()
 		local available = 0
 		for id, view in views do
 			local tile = view.tile
 			local state = HexGraph.state(p, id)
+			pulsing[id] = state == "Available"
 			local level = Stats.levelOf(p, id)
 			local colour = CATEGORY_COLOURS[tile.category] or Theme.color.blue
 			view.lock.Visible = state == "Locked" or state == "MilestoneLocked"
@@ -513,7 +515,7 @@ function Upgrades.start()
 				paint(view.fill, colour, 0)
 				view.level.Text = if id == HexTree.coreId then "" else "MAX"
 			elseif state == "Owned" then
-				paint(view.border, Theme.color.white, 0)
+				paint(view.border, Theme.color.green, 0)
 				paint(view.fill, colour, 0)
 				view.level.Text = `{level}/{tile.maxLevel}`
 			elseif state == "Available" then
@@ -713,10 +715,9 @@ function Upgrades.start()
 		end
 		t += dt
 		local pulse = 0.5 + 0.5 * math.sin(t * 4)
-		local p = progress()
 		for id, view in views do
-			if HexGraph.state(p, id) == "Available" then
-				paint(view.border, Theme.color.white:Lerp(Theme.color.coin, pulse), 0)
+			if pulsing[id] then
+				paint(view.border, Theme.color.white, 0.5 * pulse)
 			end
 		end
 	end)
