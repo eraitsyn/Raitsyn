@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain (rokit.toml)
+        uses: CompeyDev/setup-rokit@v0.1.2
+
+      - name: Format
+        run: stylua --check src tests tools
+
+      - name: Lint
+        run: selene src
+
+      - name: Unit tests
+        run: lune run tests/run
+
+      - name: Economy balance gate
+        run: lune run tools/sim/economy -- --check
+
+      - name: Build place file
+        run: rojo build -o RollRNG.rbxl

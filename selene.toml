@@ -1,0 +1,3 @@
+# Game code only; tests and tools run under Lune, not Roblox.
+std = "roblox"
+exclude = ["tests/**", "tools/**"]
