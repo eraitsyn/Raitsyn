@@ -21,6 +21,7 @@ local Schema = require(Server:WaitForChild("Data"):WaitForChild("Schema"))
 local Session = require(Server:WaitForChild("Game"):WaitForChild("Session"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FarmService = require(script.Parent:WaitForChild("FarmService"))
+local LeaderboardService = require(script.Parent:WaitForChild("LeaderboardService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
 local MapBuilder = require(Server:WaitForChild("World"):WaitForChild("MapBuilder"))
@@ -99,8 +100,25 @@ local function renderFarm(ctx: Context)
 	})
 end
 
+-- Followers are drawn by every client, so the species and variant of each
+-- pet following a player is public: "BarnChick:0,MudPiglet:1".
+local function followingAttribute(data: Schema.Profile): string
+	local parts = {}
+	for _, petId in data.following do
+		local pet = data.pets[petId]
+		if pet then
+			table.insert(parts, `{pet.s}:{pet.v}`)
+		end
+	end
+	return table.concat(parts, ",")
+end
+
 local function updatePublicInfo(ctx: Context)
 	local data = ctx.profile.Data
+	local following = followingAttribute(data)
+	if ctx.player:GetAttribute("Following") ~= following then
+		ctx.player:SetAttribute("Following", following)
+	end
 	ctx.leaderstats.coins.Value = Format.coins(data.coins)
 	ctx.leaderstats.rebirths.Value = data.rebirths
 	PlotService.setSignInfo(
@@ -222,6 +240,10 @@ local function onPlayerAdded(player: Player)
 
 	renderFarm(ctx)
 	updatePublicInfo(ctx)
+	LeaderboardService.track(player, function()
+		local data = profile.Data
+		return { coins = data.lifetimeCoins, rebirths = data.rebirths, rarest = data.stats.rarestScore }
+	end)
 
 	player.CharacterAdded:Connect(function(character)
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
@@ -238,6 +260,7 @@ local function onPlayerRemoving(player: Player)
 		return
 	end
 	contexts[player] = nil
+	LeaderboardService.untrack(player)
 	ctx.session:markLogout()
 	ctx.profile:EndSession()
 	FarmService.clear(ctx.plot)

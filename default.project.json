@@ -11,6 +11,31 @@
       "Server": {
         "$path": "src/server"
       }
+    },
+    "StarterPlayer": {
+      "$properties": {
+        "CharacterWalkSpeed": 22
+      },
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "ReplicatedFirst": {
+      "Loading": {
+        "$path": "src/first"
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "ShadowMap"
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": false
+      }
     }
   }
 }
