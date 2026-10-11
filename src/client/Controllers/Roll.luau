@@ -77,7 +77,7 @@ local function makeTile(rarityId: string, index: number): Frame
 	Kit.label({
 		Text = Theme.icon.egg,
 		TextSize = 40,
-		Size = UDim2.new(1, 0, 0.62, 0),
+		Size = UDim2.fromScale(1, 0.62),
 		Parent = tile,
 	})
 	Kit.label({

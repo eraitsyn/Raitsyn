@@ -61,7 +61,7 @@ function Dialog.confirm(title: string, body: string, confirmText: string, colour
 		FontFace = Theme.font.body,
 		TextSize = 20,
 		TextColor3 = Theme.color.muted,
-		Size = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		LayoutOrder = 2,
 		ZIndex = 52,

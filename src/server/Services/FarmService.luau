@@ -45,7 +45,7 @@ end
 local function label(parent: Instance, text: string, y: number, height: number, colour: Color3, font: Font): TextLabel
 	local l = Instance.new("TextLabel")
 	l.BackgroundTransparency = 1
-	l.Size = UDim2.new(1, 0, height, 0)
+	l.Size = UDim2.fromScale(1, height)
 	l.Position = UDim2.fromScale(0, y)
 	l.Text = text
 	l.TextScaled = true

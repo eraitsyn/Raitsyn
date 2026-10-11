@@ -149,7 +149,7 @@ function Upgrades.start()
 			BackgroundTransparency = 0.6,
 			BorderSizePixel = 0,
 			Size = UDim2.new(0, 1, 1, 0),
-			Position = UDim2.new(i / 40, 0, 0, 0),
+			Position = UDim2.fromScale(i / 40, 0),
 			Parent = grid,
 		})
 		Kit.new("Frame", {
@@ -157,7 +157,7 @@ function Upgrades.start()
 			BackgroundTransparency = 0.6,
 			BorderSizePixel = 0,
 			Size = UDim2.new(1, 0, 0, 1),
-			Position = UDim2.new(0, 0, i / 40, 0),
+			Position = UDim2.fromScale(0, i / 40),
 			Parent = grid,
 		})
 	end
@@ -213,7 +213,7 @@ function Upgrades.start()
 	-- Tiles
 	local views: { [string]: TileView } = {}
 	local selected: string = HexTree.coreId
-	local select: (tileId: string) -> ()
+	local selectTile: (tileId: string) -> ()
 	for _, tile in HexTree.tiles do
 		local centre = hexCentre(tile)
 		local radius = if tile.keystone then R * 1.08 else R
@@ -268,7 +268,7 @@ function Upgrades.start()
 			Parent = frame,
 		})
 		hit.Activated:Connect(function()
-			select(tile.id)
+			selectTile(tile.id)
 		end)
 		views[tile.id] = {
 			tile = tile,
@@ -418,7 +418,7 @@ function Upgrades.start()
 			TextSize = size,
 			TextColor3 = colour,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			Size = UDim2.new(1, 0, 0, 0),
+			Size = UDim2.fromScale(1, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			LayoutOrder = order,
 			ZIndex = 11,
@@ -556,7 +556,7 @@ function Upgrades.start()
 		refreshSheet()
 	end
 
-	select = function(tileId: string)
+	selectTile = function(tileId: string)
 		selected = tileId
 		local view = views[tileId]
 		ring.Position = view.root.Position
@@ -573,7 +573,7 @@ function Upgrades.start()
 		local centre = hexCentre(HexTree.byId[tileId])
 		pan = -centre * zoom
 		applyView()
-		select(tileId)
+		selectTile(tileId)
 	end
 
 	-- The cheapest tile you could buy right now (or the cheapest open one).

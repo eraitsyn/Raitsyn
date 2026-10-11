@@ -314,14 +314,14 @@ function Hatch.start()
 			Parent = frame,
 		})
 		local bar = Kit.progress(Theme.color.green, UDim2.new(1, -14, 0, 12), frame)
-		bar.root.Position = UDim2.new(0, 7, 0, 76)
+		bar.root.Position = UDim2.fromOffset(7, 76)
 		local time = Kit.label({
 			Text = "Empty",
 			FontFace = Theme.font.bold,
 			TextSize = 16,
 			TextColor3 = Theme.color.muted,
 			Size = UDim2.new(1, -6, 0, 36),
-			Position = UDim2.new(0, 3, 0, 92),
+			Position = UDim2.fromOffset(3, 92),
 			Parent = frame,
 		})
 		slotViews[i] = { frame = frame, egg = egg, bar = bar, time = time }

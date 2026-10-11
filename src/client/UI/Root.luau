@@ -212,7 +212,7 @@ function Root.toast(text: string, kind: ToastKind?)
 		FontFace = Theme.font.bold,
 		TextSize = 19,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Size = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = toast,
 	})

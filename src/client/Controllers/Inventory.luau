@@ -254,7 +254,7 @@ function Inventory.start()
 	local detailModel: ViewportFrame? = nil
 	local refreshDetail: () -> ()
 
-	local function select(petId: string?)
+	local function selectPet(petId: string?)
 		if selected and cards[selected] then
 			cards[selected].setSelected(false)
 		end
@@ -292,7 +292,7 @@ function Inventory.start()
 				local newCard = PetCard.new(pet, UDim2.fromOffset(126, 156))
 				newCard.button.Parent = grid
 				newCard.button.Activated:Connect(function()
-					select(petId)
+					selectPet(petId)
 				end)
 				cards[petId] = newCard
 				cardSpecies[petId] = `{pet.s}:{pet.v}`
