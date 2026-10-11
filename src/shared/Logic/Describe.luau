@@ -63,7 +63,19 @@ function Describe.value(effect: HexTree.Effect, level: number): string
 	local info = STATS[effect.stat]
 	local kind: Kind = if info then info.kind else "count"
 	if level <= 0 then
-		return if kind == "flag" then "Off" else "None"
+		-- what the stat is before any level: "0%", "x1", "Off" and so on
+		if kind == "flag" then
+			return "Off"
+		elseif kind == "percent" then
+			return "0%"
+		elseif kind == "seconds" then
+			return if effect.mode == "set" then "Default" else "0s"
+		elseif kind == "hours" then
+			return "0h"
+		elseif kind == "times" then
+			return "x1"
+		end
+		return "+0"
 	end
 	if effect.mode == "mul" then
 		return "x" .. trim(effect.value ^ level, 2)

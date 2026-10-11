@@ -74,7 +74,7 @@ local function paintToggle(button: Kit.Button, on: boolean)
 end
 
 function Settings.start()
-	local panel = Kit.panel("Settings", Vector2.new(640, 440), Theme.color.greyDark)
+	local panel = Kit.panel("Settings", Vector2.new(640, 400), Theme.color.greyDark)
 	local handle: Root.PanelHandle = { root = panel.root }
 	panel.onClose = Root.closePanel
 	App.registerPanel("Settings", handle)
@@ -133,7 +133,7 @@ function Settings.start()
 		if unlocked then
 			paintToggle(autoButton, settings.autoHatch)
 		else
-			autoButton.setText(Theme.icon.lock)
+			autoButton.setText(`{Theme.icon.lock} Locked`)
 		end
 		for i, button in volumeButtons do
 			local selected = math.abs(VOLUMES[i] - settings.sfxVolume) < 0.01

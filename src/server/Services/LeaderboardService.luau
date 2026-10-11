@@ -27,7 +27,7 @@ type Board = {
 
 local WRITE_EVERY = 180
 local READ_EVERY = 60
-local TOP = 10
+local TOP = 8
 local MAX_SCORE = 2 ^ 53 - 1
 
 local BOARDS: { Board } = {
@@ -154,25 +154,25 @@ local function buildView(screen: BasePart, board: Board): View
 	gui.Name = "Leaderboard"
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
+	gui.PixelsPerStud = 30 -- a 16 x 20 stud board is 480 x 600 pixels
 	gui.LightInfluence = 0
 	gui.Parent = screen
 	label(gui, {
 		Text = board.title,
 		FontFace = Font.fromEnum(Enum.Font.FredokaOne),
 		TextColor3 = board.accent,
-		Size = UDim2.new(1, -40, 0, 90),
-		Position = UDim2.fromOffset(20, 16),
+		Size = UDim2.new(1, -30, 0, 70),
+		Position = UDim2.fromOffset(15, 10),
 	})
 	local note = label(gui, {
 		Text = "Loading...",
 		TextColor3 = Color3.fromRGB(190, 196, 214),
-		Size = UDim2.new(1, -40, 0, 34),
-		Position = UDim2.fromOffset(20, 106),
+		Size = UDim2.new(1, -30, 0, 26),
+		Position = UDim2.fromOffset(15, 84),
 	})
 	local rows = {}
 	for i = 1, TOP do
-		local y = 150 + (i - 1) * 62
+		local y = 122 + (i - 1) * 58
 		local colour = if i == 1
 			then Color3.fromRGB(255, 215, 80)
 			elseif i == 2 then Color3.fromRGB(220, 226, 240)
@@ -182,21 +182,21 @@ local function buildView(screen: BasePart, board: Board): View
 			rank = label(gui, {
 				Text = `#{i}`,
 				TextColor3 = colour,
-				Size = UDim2.fromOffset(70, 48),
-				Position = UDim2.fromOffset(20, y),
+				Size = UDim2.fromOffset(56, 46),
+				Position = UDim2.fromOffset(15, y),
 				TextXAlignment = Enum.TextXAlignment.Left,
 			}),
 			name = label(gui, {
 				Text = "",
-				Size = UDim2.new(0.55, -70, 0, 48),
-				Position = UDim2.fromOffset(96, y),
+				Size = UDim2.new(0.55, -60, 0, 46),
+				Position = UDim2.fromOffset(76, y),
 				TextXAlignment = Enum.TextXAlignment.Left,
 			}),
 			value = label(gui, {
 				Text = "",
 				TextColor3 = board.accent,
-				Size = UDim2.new(0.45, -40, 0, 48),
-				Position = UDim2.new(0.55, 20, 0, y),
+				Size = UDim2.new(0.45, -25, 0, 46),
+				Position = UDim2.new(0.55, 10, 0, y),
 				TextXAlignment = Enum.TextXAlignment.Right,
 			}),
 		}

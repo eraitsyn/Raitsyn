@@ -50,7 +50,13 @@ function Theme.rarity(rarityId: string): Color3
 		return Color3.fromRGB(88, 40, 150)
 	end
 	local rarity = Rarities.byId[rarityId]
-	return if rarity then rarity.color else Theme.color.grey
+	local colour = if rarity then rarity.color else Theme.color.grey
+	-- pale colours (Common's light grey) are darkened so text stays readable
+	local luminance = 0.299 * colour.R + 0.587 * colour.G + 0.114 * colour.B
+	if luminance > 0.7 then
+		colour = colour:Lerp(Color3.new(0, 0, 0), 0.4)
+	end
+	return colour
 end
 
 -- A darker shade for button shadows and borders.
@@ -62,7 +68,7 @@ end
 Theme.icon = {
 	pets = "🐾",
 	farm = "🌾",
-	upgrades = "⬢",
+	upgrades = "💠",
 	index = "📖",
 	daily = "🎁",
 	rebirth = "♻️",
@@ -78,7 +84,7 @@ Theme.icon = {
 	placed = "🌾",
 	shiny = "✨",
 	rainbow = "🌈",
-	close = "✕",
+	close = "X",
 }
 
 return Theme

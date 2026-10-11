@@ -131,10 +131,12 @@ function Hud.start()
 		rateText.Text = "+" .. Format.rate(State.rate)
 	end)
 
-	-- Stats chip (top left, under the Roblox buttons)
+	-- Stats chip
 	local chip = Kit.new("Frame", {
 		Name = "StatsChip",
-		Position = UDim2.fromOffset(12, 8),
+		-- bottom right: the top corners belong to Roblox's menu and player list
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -12, 1, -12),
 		Size = UDim2.fromOffset(0, 40),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = Theme.color.panel,
@@ -168,7 +170,7 @@ function Hud.start()
 		Position = UDim2.new(0, 10, 0.5, 10),
 		Size = UDim2.fromOffset(80, #RAIL * 80),
 		BackgroundTransparency = 1,
-		Parent = hud,
+		Parent = Root.nav,
 	}, { Kit.list(Enum.FillDirection.Vertical, 6) })
 	local dots: { [string]: Frame } = {}
 	for i, entry in RAIL do
@@ -191,8 +193,12 @@ function Hud.start()
 		Position = UDim2.new(1, -10, 0.5, 0),
 		Size = UDim2.fromOffset(74, 160),
 		BackgroundTransparency = 1,
-		Parent = hud,
+		Parent = Root.nav,
 	}, { Kit.list(Enum.FillDirection.Vertical, 8) })
+	-- full-screen panels (the upgrade tree) use the right edge for their own sheet
+	Root.panelChanged.Event:Connect(function(panel)
+		travel.Visible = not (panel and panel.fullscreen)
+	end)
 	for i, entry in
 		{
 			{ icon = Theme.icon.home, label = "Home", fn = App.teleportHome, colour = Theme.color.green },

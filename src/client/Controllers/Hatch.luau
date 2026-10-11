@@ -334,14 +334,14 @@ function Hatch.start()
 		Size = UDim2.fromOffset(340, 86),
 		Position = UDim2.fromOffset(350, 40),
 		Parent = panel,
-	}, { Kit.grid(UDim2.fromOffset(80, 40), 6) })
+	}, { Kit.grid(UDim2.fromOffset(108, 40), 6) })
 	local eggButtons: { [string]: Kit.Button } = {}
 	for i, rarity in Rarities.list do
 		eggButtons[rarity.id] = Kit.button({
 			text = "",
 			colour = Theme.rarity(rarity.id),
-			size = UDim2.fromOffset(80, 40),
-			textSize = 17,
+			size = UDim2.fromOffset(108, 40),
+			textSize = 15,
 			layoutOrder = i,
 			parent = eggList,
 			onClick = function()
@@ -378,7 +378,7 @@ function Hatch.start()
 			local count = State.data.eggs[rarity.id] or 0
 			local button = eggButtons[rarity.id]
 			button.root.Visible = count > 0
-			button.setText(`{Theme.icon.egg} {count}`)
+			button.setText(`{rarity.name} x{count}`)
 			any = any or count > 0
 		end
 		hatchAll.setEnabled(any)

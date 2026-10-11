@@ -148,7 +148,9 @@ local function billboard(
 ): BillboardGui
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromScale(width or 8, 2)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, height, 0)
+	-- StudsOffsetWorldSpace is in the adornee's own axes, so convert "up" for
+	-- rotated parts such as the cylinder station bases.
+	gui.StudsOffsetWorldSpace = adornee.CFrame:VectorToObjectSpace(Vector3.new(0, height, 0))
 	gui.MaxDistance = distance
 	gui.LightInfluence = 0
 	gui.AlwaysOnTop = false

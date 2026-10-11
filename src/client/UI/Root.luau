@@ -38,8 +38,10 @@ Root.gui = gui
 Root.hud = layer("Hud", 1)
 Root.context = layer("Context", 2)
 Root.panels = layer("Panels", 3)
-Root.reveal = layer("Reveal", 4)
-Root.toasts = layer("Toasts", 5)
+-- the left rail and travel buttons sit above panels so they work while one is open
+Root.nav = layer("Nav", 4)
+Root.reveal = layer("Reveal", 5)
+Root.toasts = layer("Toasts", 6)
 
 -- Everything is designed at 1280 x 720 and scaled by the shortest side.
 local function rescale()
@@ -49,11 +51,8 @@ local function rescale()
 	end
 	local viewport = camera.ViewportSize
 	local shortest = math.min(viewport.X, viewport.Y)
+	-- Scale-sized layers still fill the screen; only offset sizes scale.
 	scale.Scale = math.clamp(shortest / 720, 0.6, 1.25)
-	-- UIScale also scales the layers, so they are shrunk back to fill the screen.
-	for _, child in { Root.hud, Root.context, Root.panels, Root.reveal, Root.toasts } do
-		child.Size = UDim2.fromScale(1 / scale.Scale, 1 / scale.Scale)
-	end
 end
 rescale()
 local function watchCamera()

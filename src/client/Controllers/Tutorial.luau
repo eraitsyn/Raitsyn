@@ -160,6 +160,10 @@ function Tutorial.start()
 		local target = if goal.target then goal.target() else nil
 		marker.Adornee = target
 		marker.Enabled = target ~= nil
+		if target then
+			-- the offset is in the part's own axes (station bases are rotated cylinders)
+			marker.StudsOffsetWorldSpace = target.CFrame:VectorToObjectSpace(Vector3.new(0, 7, 0))
+		end
 	end
 
 	-- Advance past every goal already met (a returning player may have done

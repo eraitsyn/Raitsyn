@@ -80,7 +80,7 @@ local function column(parent: Instance, order: number, title: string, colour: Co
 end
 
 function Rebirth.start()
-	local panel = Kit.panel("Rebirth", Vector2.new(780, 500), ACCENT)
+	local panel = Kit.panel("Rebirth", Vector2.new(780, 440), ACCENT)
 	local handle: Root.PanelHandle = { root = panel.root }
 	panel.onClose = Root.closePanel
 	App.registerPanel("Rebirth", handle)
@@ -103,7 +103,7 @@ function Rebirth.start()
 
 	local columns = Kit.new("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 220),
+		Size = UDim2.new(1, 0, 0, 160),
 		Position = UDim2.fromOffset(0, 70),
 		Parent = panel.body,
 	}, { Kit.list(Enum.FillDirection.Horizontal, 12, Enum.HorizontalAlignment.Center) })
@@ -116,7 +116,7 @@ function Rebirth.start()
 		Text = "",
 		AutoButtonColor = false,
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 304),
+		Position = UDim2.new(0.5, 0, 0, 244),
 		Size = UDim2.fromOffset(340, 64),
 		BackgroundColor3 = Theme.shade(ACCENT, 0.25),
 		ClipsDescendants = true,
@@ -141,7 +141,7 @@ function Rebirth.start()
 		TextSize = 15,
 		TextColor3 = Theme.color.muted,
 		Size = UDim2.new(1, 0, 0, 20),
-		Position = UDim2.fromOffset(0, 374),
+		Position = UDim2.fromOffset(0, 314),
 		Parent = panel.body,
 	})
 

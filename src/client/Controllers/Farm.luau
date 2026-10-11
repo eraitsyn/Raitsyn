@@ -187,6 +187,7 @@ function Farm.start()
 		TextSize = 16,
 		TextColor3 = Theme.color.muted,
 		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		Size = UDim2.new(1, -360, 0, 22),
 		Position = UDim2.fromOffset(0, 24),
 		Parent = panel.body,
@@ -219,7 +220,7 @@ function Farm.start()
 		Size = UDim2.new(1, 0, 1, -60),
 		Position = UDim2.fromOffset(0, 60),
 		Parent = panel.body,
-	}, { Kit.grid(UDim2.fromOffset(124, 100), 8) })
+	}, { Kit.grid(UDim2.fromOffset(124, 90), 8) })
 	type Cell = { button: TextButton, title: TextLabel, sub: TextLabel }
 	local cells: { Cell } = {}
 	for pad = 1, Economy.maxPadSlots do
@@ -242,8 +243,8 @@ function Farm.start()
 		local title = Kit.label({
 			FontFace = Theme.font.heading,
 			TextSize = 17,
-			Size = UDim2.new(1, -8, 0, 40),
-			Position = UDim2.fromOffset(4, 24),
+			Size = UDim2.new(1, -8, 0, 36),
+			Position = UDim2.fromOffset(4, 22),
 			Parent = button,
 		})
 		local sub = Kit.label({
@@ -251,7 +252,7 @@ function Farm.start()
 			TextSize = 15,
 			TextColor3 = Theme.color.coinDark,
 			Size = UDim2.new(1, -8, 0, 22),
-			Position = UDim2.fromOffset(4, 68),
+			Position = UDim2.fromOffset(4, 62),
 			Parent = button,
 		})
 		button.Activated:Connect(function()

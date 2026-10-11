@@ -326,7 +326,8 @@ function Upgrades.start()
 		text = "0 available",
 		colour = Theme.color.green,
 		size = UDim2.fromOffset(170, 48),
-		position = UDim2.new(1, -330, 0, 8),
+		position = UDim2.new(1, -216, 0, 8),
+		anchor = Vector2.new(1, 0),
 		textSize = 18,
 		parent = header,
 	})
@@ -335,7 +336,8 @@ function Upgrades.start()
 		text = "Recenter",
 		colour = Theme.color.blue,
 		size = UDim2.fromOffset(120, 48),
-		position = UDim2.new(1, -152, 0, 8),
+		position = UDim2.new(1, -84, 0, 8),
+		anchor = Vector2.new(1, 0),
 		textSize = 18,
 		parent = header,
 		onClick = function()

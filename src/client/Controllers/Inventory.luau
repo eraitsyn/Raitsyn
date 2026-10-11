@@ -144,14 +144,14 @@ function Inventory.start()
 	}, { Kit.corner(UDim.new(0, 14)) })
 	local detailView = Kit.new("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 170),
+		Size = UDim2.new(1, 0, 0, 120),
 		Parent = detail,
 	})
 	local detailName = Kit.label({
 		FontFace = Theme.font.heading,
 		TextSize = 24,
 		Size = UDim2.new(1, -16, 0, 30),
-		Position = UDim2.fromOffset(8, 170),
+		Position = UDim2.fromOffset(8, 120),
 		Parent = detail,
 	})
 	local detailInfo = Kit.label({
@@ -159,13 +159,13 @@ function Inventory.start()
 		TextSize = 17,
 		TextColor3 = Theme.color.muted,
 		Size = UDim2.new(1, -16, 0, 44),
-		Position = UDim2.fromOffset(8, 200),
+		Position = UDim2.fromOffset(8, 148),
 		Parent = detail,
 	})
 	local actions = Kit.new("Frame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -16, 0, 160),
-		Position = UDim2.new(0, 8, 1, -168),
+		Size = UDim2.new(1, -16, 0, 108),
+		Position = UDim2.new(0, 8, 1, -170),
 		Parent = detail,
 	}, { Kit.grid(UDim2.fromOffset(126, 48), 6) })
 	local placeButton =
@@ -176,12 +176,14 @@ function Inventory.start()
 		Kit.button({ text = "Lock", colour = Theme.color.purple, textSize = 18, layoutOrder = 3, parent = actions })
 	local releaseButton =
 		Kit.button({ text = "Release", colour = Theme.color.red, textSize = 18, layoutOrder = 4, parent = actions })
+	-- always shown, under the per-pet actions
 	Kit.button({
 		text = "Place Best",
 		colour = Theme.color.coinDark,
 		textSize = 18,
-		layoutOrder = 5,
-		parent = actions,
+		size = UDim2.new(1, -16, 0, 50),
+		position = UDim2.new(0, 8, 1, -58),
+		parent = detail,
 		onClick = function()
 			task.spawn(request, "PlaceBest")
 		end,
