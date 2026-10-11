@@ -60,6 +60,34 @@ describe("Schema", function()
 		expect(data.following[1]).toBe("p2")
 		expect(data.eggs.Common).toBe(nil)
 	end)
+
+	it("drops ids the config no longer knows", function()
+		local data = Schema.template()
+		data.pets.p1 = { s = "BarnChick", v = 0, t = 0, lk = false }
+		data.pets.p2 = { s = "RemovedPet", v = 0, t = 0, lk = false }
+		data.placed["1"] = "p2"
+		data.index.RemovedPet = 1
+		data.eggs.Removed = 2
+		data.incubator = { { r = "Common", start = 0, done = 1 }, { r = "Removed", start = 0, done = 1 } }
+		local known = { species = { BarnChick = true }, rarities = { Common = true } }
+		local fixes = Schema.repair(data, 24, 3, known)
+		expect(fixes).toBe(5)
+		expect(data.pets.p1 ~= nil).toBe(true)
+		expect(data.pets.p2).toBe(nil)
+		expect(data.placed["1"]).toBe(nil)
+		expect(data.index.RemovedPet).toBe(nil)
+		expect(data.eggs.Removed).toBe(nil)
+		expect(#data.incubator).toBe(1)
+	end)
+
+	it("replaces tables that are the wrong type", function()
+		local data = Schema.template() :: any
+		data.placed = "broken"
+		data.following = 5
+		expect(Schema.repair(data, 24, 3)).toBe(2)
+		expect(type(data.placed)).toBe("table")
+		expect(#data.following).toBe(0)
+	end)
 end)
 
 return nil

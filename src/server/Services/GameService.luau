@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = Shared:WaitForChild("Config")
 local Economy = require(Config:WaitForChild("Economy"))
+local Pets = require(Config:WaitForChild("Pets"))
 local Rarities = require(Config:WaitForChild("Rarities"))
 local Format = require(Shared:WaitForChild("Logic"):WaitForChild("Format"))
 
@@ -33,6 +34,7 @@ local ANNOUNCE_ORDER = Rarities.byId.Legendary.order
 -- Rarity order from which a hatch asks for an early save.
 local EARLY_SAVE_ORDER = Rarities.byId.Mythic.order
 local RESPAWN_DELAY = 3
+local KNOWN: Schema.Known = { species = Pets.byId, rarities = Rarities.byId }
 
 type Dirty = { [string]: true | { [string]: true } }
 
@@ -178,6 +180,8 @@ local function spawnCharacter(player: Player)
 	player:LoadCharacter()
 end
 
+local setUp: (Player, DataService.Profile, MapBuilder.PlotHandles) -> ()
+
 local function onPlayerAdded(player: Player)
 	local profile, loadError = DataService.load(player)
 	if profile == nil then
@@ -194,6 +198,32 @@ local function onPlayerAdded(player: Player)
 		player:Kick("This server is full. Please rejoin.")
 		return
 	end
+
+	-- Anything below can only fail on a save the repair pass doesn't cover or a
+	-- bug; either way, release the save lock and plot rather than leaving the
+	-- player behind an endless loading screen.
+	local ok: boolean, err: any = pcall(setUp, player, profile, plot)
+	if not ok then
+		warn(`[Game] could not set up {player.UserId}: {err}`)
+		-- An inactive profile means onPlayerRemoving already cleaned up.
+		if profile:IsActive() then
+			local ctx = contexts[player]
+			contexts[player] = nil
+			LeaderboardService.untrack(player)
+			if ctx then
+				ctx.session:markLogout()
+			end
+			profile:EndSession()
+			FarmService.clear(plot)
+			PlotService.release(player)
+		end
+		player:Kick("Something went wrong loading your farm. Please rejoin.")
+	end
+end
+
+function setUp(player: Player, profile: DataService.Profile, plot: MapBuilder.PlotHandles)
+	-- Drop ids removed from config before anything tries to build them.
+	Schema.repair(profile.Data, math.huge, math.huge, KNOWN)
 
 	local ctx: Context
 	local session = Session.new(profile.Data, {
@@ -232,8 +262,10 @@ local function onPlayerAdded(player: Player)
 			session:markLogout()
 		end
 	end)
-	profile.OnSessionEnd:Connect(function()
-		if contexts[player] == ctx and player.Parent == Players then
+	-- Only another server taking the save ends a session we didn't end
+	-- ourselves; a shutdown also ends it, and needs no kick message.
+	profile.OnLastSave:Connect(function(reason)
+		if reason == "External" and contexts[player] == ctx and player.Parent == Players then
 			player:Kick("Your farm was opened on another server.")
 		end
 	end)
@@ -293,6 +325,8 @@ end
 
 local function registerHandlers()
 	local slow = { perSecond = 2, burst = 5 }
+	-- Whole-farm changes can rebuild every pet model on the plot.
+	local bulk = { perSecond = 0.5, burst = 2 }
 	local normal = { perSecond = 6, burst = 12 }
 
 	NetService.onRequest(
@@ -358,7 +392,7 @@ local function registerHandlers()
 
 	NetService.onRequest(
 		"RemoveAll",
-		{ args = {}, perSecond = slow.perSecond, burst = slow.burst },
+		{ args = {}, perSecond = bulk.perSecond, burst = bulk.burst },
 		withContext(function(ctx)
 			return ctx.session:removeAll()
 		end)
@@ -366,7 +400,7 @@ local function registerHandlers()
 
 	NetService.onRequest(
 		"PlaceBest",
-		{ args = {}, perSecond = slow.perSecond, burst = slow.burst },
+		{ args = {}, perSecond = bulk.perSecond, burst = bulk.burst },
 		withContext(function(ctx)
 			return ctx.session:placeBest()
 		end)
@@ -521,7 +555,11 @@ function GameService.start()
 			tickAll()
 		end
 		for _, ctx in contexts do
-			flush(ctx)
+			-- one player's bad data must not stop updates for everyone else
+			local ok: boolean, err: any = pcall(flush, ctx)
+			if not ok then
+				warn(`[Game] flush failed for {ctx.player.UserId}: {err}`)
+			end
 		end
 	end)
 end

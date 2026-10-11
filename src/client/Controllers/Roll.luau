@@ -34,6 +34,7 @@ local Roll = {}
 local TILE = 92 -- reel tile width in pixels
 local selectedTier = "Basic"
 local rolling = false
+local spins = 0 -- the newest reel spin; an older spin's cleanup must not hide it
 local autoOn = false
 
 local function luckFor(tierId: string, lucky: boolean): number
@@ -150,6 +151,8 @@ local function spinReel(tierId: string): (rarity: string?, lucky: boolean) -> ()
 	end
 	strip.Position = UDim2.fromOffset(0, 0)
 	reel.Visible = true
+	spins += 1
+	local spin = spins
 
 	local x = 0
 	local spinning = true
@@ -202,7 +205,9 @@ local function spinReel(tierId: string): (rarity: string?, lucky: boolean) -> ()
 				0.36
 			)
 			task.wait(if order >= 5 then 1.6 else 0.6)
-			reel.Visible = false
+			if spins == spin then
+				reel.Visible = false
+			end
 		end)
 	end
 end

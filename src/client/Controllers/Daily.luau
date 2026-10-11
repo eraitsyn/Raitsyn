@@ -175,12 +175,15 @@ function DailyPanel.start()
 	})
 
 	-- the countdown ticks while the panel is open
+	local opens = 0
 	handle.onOpen = function()
 		refresh()
+		opens += 1
+		local open = opens -- reopening quickly must not leave two loops running
 		task.spawn(function()
-			while panel.root.Visible do
+			while panel.root.Visible and opens == open do
 				task.wait(1)
-				if panel.root.Visible then
+				if panel.root.Visible and opens == open then
 					refresh()
 				end
 			end

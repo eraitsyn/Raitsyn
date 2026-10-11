@@ -112,14 +112,57 @@ function Schema.migrate(data: { [string]: any }): LoadResult
 	return "ok"
 end
 
+-- Ids the current config knows. Anything else in a save (a species or rarity
+-- removed in an update) is dropped, because building or rolling it would error.
+export type Known = { species: { [string]: any }, rarities: { [string]: any } }
+
+local TABLE_KEYS = { "hex", "keystones", "pets", "placed", "following", "eggs", "incubator", "index" }
+
 -- Repairs values that should be impossible (a crash mid-edit, a bad
--- migration): negative coins, placements pointing at missing pets, a pet both
--- placed and following. Returns the number of fixes so the server can log it.
-function Schema.repair(data: Profile, maxPads: number, maxFollowers: number): number
+-- migration, an id removed from config): negative coins, placements pointing
+-- at missing pets, a pet both placed and following, unknown species or
+-- rarities. Returns the number of fixes so the server can log it.
+function Schema.repair(data: Profile, maxPads: number, maxFollowers: number, known: Known?): number
 	local fixes = 0
 	if type(data.coins) ~= "number" or data.coins ~= data.coins or data.coins < 0 then
 		data.coins = 0
 		fixes += 1
+	end
+	local raw = data :: any
+	for _, key in TABLE_KEYS do
+		if type(raw[key]) ~= "table" then
+			raw[key] = {}
+			fixes += 1
+		end
+	end
+	if known then
+		for petId, pet in data.pets do
+			if type(pet) ~= "table" or type(pet.s) ~= "string" or known.species[pet.s] == nil then
+				data.pets[petId] = nil
+				fixes += 1
+			end
+		end
+		for speciesId in data.index do
+			if known.species[speciesId] == nil then
+				data.index[speciesId] = nil
+				fixes += 1
+			end
+		end
+		for rarityId in data.eggs do
+			if known.rarities[rarityId] == nil then
+				data.eggs[rarityId] = nil
+				fixes += 1
+			end
+		end
+		local slots = {}
+		for _, slot in data.incubator do
+			if type(slot) == "table" and known.rarities[slot.r] ~= nil then
+				table.insert(slots, slot)
+			else
+				fixes += 1
+			end
+		end
+		data.incubator = slots
 	end
 	local used: { [string]: boolean } = {}
 	-- Walk pads in numeric order so a pet on two pads keeps the lower one.

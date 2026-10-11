@@ -13,11 +13,15 @@ local Schema = require(Server:WaitForChild("Data"):WaitForChild("Schema"))
 
 local STORE_NAME = "RollRNG_Profiles_v1"
 local EARLY_SAVE_GAP = 30 -- seconds between requested early saves per player
+-- Passing Cancel turns off ProfileStore's own timeout, so give up here
+-- instead and tell the player, rather than loading forever in an outage.
+local LOAD_TIMEOUT = 60
 
 export type Profile = {
 	Data: Schema.Profile,
 	OnSave: any,
 	OnSessionEnd: any,
+	OnLastSave: any,
 	IsActive: (self: Profile) -> boolean,
 	EndSession: (self: Profile) -> (),
 	AddUserId: (self: Profile, userId: number) -> (),
@@ -40,9 +44,10 @@ end
 
 -- Yields until the profile is loaded, or the player leaves, or loading fails.
 function DataService.load(player: Player): (Profile?, LoadError?)
+	local started = os.clock()
 	local profile: Profile? = store:StartSessionAsync(`Player_{player.UserId}`, {
 		Cancel = function()
-			return player.Parent ~= Players
+			return player.Parent ~= Players or os.clock() - started > LOAD_TIMEOUT
 		end,
 	})
 	if profile == nil then

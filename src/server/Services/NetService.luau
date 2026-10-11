@@ -127,14 +127,15 @@ function NetService.onRequest(name: string, spec: Spec, handler: Handler)
 		if count > #spec.args then
 			return refuse(player, name, `too many arguments ({count})`)
 		end
+		-- The token comes first so malformed spam is throttled too.
+		if not takeToken(player, name, spec) then
+			return { ok = false, err = "Slow down a little" }
+		end
 		local args = { ... }
 		for index, check in spec.args do
 			if not check(args[index]) then
 				return refuse(player, name, `bad argument {index}`)
 			end
-		end
-		if not takeToken(player, name, spec) then
-			return { ok = false, err = "Slow down a little" }
 		end
 		local ok, data, err = pcall(handler, player, table.unpack(args, 1, #spec.args))
 		if not ok then

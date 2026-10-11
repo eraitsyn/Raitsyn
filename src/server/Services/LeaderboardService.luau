@@ -269,20 +269,26 @@ function LeaderboardService.start(screens: { BasePart })
 
 	task.spawn(function()
 		while true do
-			refresh()
+			local ok: boolean, err: any = pcall(refresh)
+			if not ok then
+				warn(`[Leaderboard] refresh failed: {err}`)
+			end
 			task.wait(READ_EVERY)
 		end
 	end)
 	task.spawn(function()
 		while true do
 			task.wait(WRITE_EVERY)
-			for player, entry in tracked do
-				write(player, entry)
+			-- writes yield, so walk a copy: players join and leave meanwhile
+			for player, entry in table.clone(tracked) do
+				if tracked[player] == entry then
+					write(player, entry)
+				end
 			end
 		end
 	end)
 	game:BindToClose(function()
-		for player, entry in tracked do
+		for player, entry in table.clone(tracked) do
 			task.spawn(write, player, entry)
 		end
 		task.wait(2)
