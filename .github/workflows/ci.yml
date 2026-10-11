@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Roblox API type definitions matching the pinned luau-lsp release.
+      LUAU_LSP_DEFS: https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/1.70.1/scripts/globalTypes.None.d.luau
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain (rokit.toml)
+        uses: CompeyDev/setup-rokit@v0.1.2
+
+      - name: Format
+        run: stylua --check src tests tools
+
+      - name: Lint
+        run: selene src
+
+      - name: Type check (strict, Roblox API)
+        run: |
+          curl -sSfL "$LUAU_LSP_DEFS" -o roblox.d.luau
+          rojo sourcemap default.project.json -o sourcemap.json
+          luau-lsp analyze --definitions=roblox.d.luau --sourcemap=sourcemap.json --platform=roblox --ignore="**/Vendor/**" src
+
+      - name: Unit tests
+        run: lune run tests/run
+
+      - name: Economy balance gate
+        run: lune run tools/sim/economy -- --check
+
+      - name: Build place file
+        run: rojo build -o RollRNG.rbxl
+
+      - name: World smoke test
+        run: lune run tools/smoke/world -- RollRNG.rbxl
