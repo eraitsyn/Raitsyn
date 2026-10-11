@@ -75,6 +75,23 @@ function Stats.levelOf(progress: Progress, tileId: string): number
 	return math.clamp(math.floor(level), 0, tile.maxLevel)
 end
 
+-- Builds the progress view from a saved profile (or the client's mirror of it).
+-- speciesFound counts species with any variant discovered.
+function Stats.progressOf(data: {
+	hex: { [string]: number },
+	keystones: { [string]: boolean },
+	rebirths: number,
+	index: { [string]: number },
+}): Progress
+	local found = 0
+	for _, mask in data.index do
+		if mask > 0 then
+			found += 1
+		end
+	end
+	return { hex = data.hex, keystones = data.keystones, rebirths = data.rebirths, speciesFound = found }
+end
+
 function Stats.compute(progress: Progress): Stats
 	local s: { [string]: number } = {
 		petIncomeAdd = 0,

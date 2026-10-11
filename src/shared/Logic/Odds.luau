@@ -101,6 +101,46 @@ function Odds.pickVariant(variantChanceAdd: number, u: number): string
 	return "Normal"
 end
 
+-- Chance of hatching this exact species and variant from a Basic roll at
+-- luck 1. It ranks pets for the Rarest Pet leaderboard and the "1 in N" label
+-- in the Index, so it never depends on the player's own luck.
+function Odds.basicChance(speciesId: string, variantId: string): number
+	local species = Pets.byId[speciesId]
+	if species == nil then
+		return 0
+	end
+	local rarityChance = 0
+	for _, entry in Odds.chances(1) do
+		if entry.rarity == species.rarity then
+			rarityChance = entry.chance
+		end
+	end
+	local pool = Pets.byRarity[species.rarity]
+	local total = 0
+	for _, other in pool do
+		total += other.weight
+	end
+	local variantChance = 1
+	if variantId ~= "Normal" then
+		variantChance = Odds.variantChances(0)[variantId] or 0
+	else
+		for _, chance in Odds.variantChances(0) do
+			variantChance -= chance
+		end
+	end
+	return rarityChance * (species.weight / total) * variantChance
+end
+
+-- Integer leaderboard score: 100 x log10(1 / chance), so a 1 in 1,000 pet
+-- scores 300 and a 1 in 1,000,000 pet scores 600. Higher is rarer.
+function Odds.rarityScore(speciesId: string, variantId: string): number
+	local chance = Odds.basicChance(speciesId, variantId)
+	if chance <= 0 then
+		return 0
+	end
+	return math.floor(100 * math.log10(1 / chance))
+end
+
 -- "1 in N" for display; N rounded to a readable integer.
 function Odds.oneIn(chance: number): number
 	if chance <= 0 then

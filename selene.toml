@@ -1,3 +1,4 @@
-# Game code only; tests and tools run under Lune, not Roblox.
+# Game code only; tests and tools run under Lune, not Roblox. Vendored
+# libraries keep their upstream style.
 std = "roblox"
-exclude = ["tests/**", "tools/**"]
+exclude = ["tests/**", "tools/**", "src/server/Vendor/**"]

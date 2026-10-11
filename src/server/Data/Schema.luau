@@ -6,13 +6,14 @@
 export type PetRecord = {
 	s: string, -- species id
 	v: number, -- variant order (0 Normal, 1 Shiny, 2 Rainbow)
-	t: number, -- os.time() obtained
+	t: number, -- server time obtained
 	lk: boolean, -- locked against release
 }
 
 export type IncubatorSlot = {
 	r: string, -- rarity id
-	done: number, -- os.time() when it finishes
+	start: number, -- server time (seconds) the egg went in
+	done: number, -- server time when it finishes
 }
 
 export type Profile = {
@@ -34,7 +35,8 @@ export type Profile = {
 	offline: { rate: number, logout: number },
 	stats: { rolls: number, hatches: number, rarestScore: number },
 	tutorial: number,
-	settings: { skipCommonReveals: boolean, sfxVolume: number },
+	starterGranted: boolean,
+	settings: { skipCommonReveals: boolean, autoHatch: boolean, sfxVolume: number },
 }
 
 local VERSION = 1
@@ -59,7 +61,8 @@ local function template(): Profile
 		offline = { rate = 0, logout = 0 },
 		stats = { rolls = 0, hatches = 0, rarestScore = 0 },
 		tutorial = 0,
-		settings = { skipCommonReveals = false, sfxVolume = 1 },
+		starterGranted = false,
+		settings = { skipCommonReveals = false, autoHatch = true, sfxVolume = 1 },
 	}
 end
 
