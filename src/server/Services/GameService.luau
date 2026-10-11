@@ -496,6 +496,23 @@ function GameService.start()
 		task.spawn(onPlayerAdded, player)
 	end
 
+	-- Studio-only testing aid: a server-side BindableFunction (clients can't
+	-- reach ServerStorage) that grants coins so late-game screens can be
+	-- playtested. It is never created in a live server.
+	if RunService:IsStudio() then
+		local grant = Instance.new("BindableFunction")
+		grant.Name = "StudioGrantCoins"
+		grant.OnInvoke = function(player: Player, amount: number): string
+			local ctx = contexts[player]
+			if ctx == nil then
+				return "no session"
+			end
+			ctx.session:_addCoins(amount, false)
+			return `coins now {ctx.session.data.coins}`
+		end
+		grant.Parent = game:GetService("ServerStorage")
+	end
+
 	local accumulated = 0
 	RunService.Heartbeat:Connect(function(dt)
 		accumulated += dt
